@@ -69,4 +69,5 @@ export interface User {
   email: string;
   name?: string;
   role: 'super_admin' | 'admin';
+  phoneNumber?: string;
 }

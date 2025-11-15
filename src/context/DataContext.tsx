@@ -18,7 +18,9 @@ import {
   updateSocietyAdmin as updateSocietyAdminService,
   toggleSocietyAdminStatus as toggleSocietyAdminStatusService,
   deleteSocietyAdmin as deleteSocietyAdminService,
+  sendSocietyAdminPasswordReset as sendSocietyAdminPasswordResetService,
 } from '../services/societyService';
+import { useAuth } from './AuthContext';
 
 interface DataContextType {
   societies: Society[];
@@ -44,6 +46,7 @@ interface DataContextType {
   ) => Promise<SocietyAdmin>;
   toggleSocietyAdminStatus: (societyId: string, adminId: string) => Promise<SocietyAdmin>;
   deleteSocietyAdmin: (societyId: string, adminId: string) => Promise<void>;
+  sendSocietyAdminPasswordReset: (societyId: string, adminId: string) => Promise<string>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -68,8 +71,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [societies, setSocieties] = useState<Society[]>([]);
   const [isLoadingSocieties, setIsLoadingSocieties] = useState(false);
   const [societiesError, setSocietiesError] = useState<string | null>(null);
+  const { isAuthenticated, isInitialized } = useAuth();
 
   const refreshSocieties = useCallback(async () => {
+    if (!isAuthenticated) {
+      setSocieties([]);
+      setSocietiesError(null);
+      setIsLoadingSocieties(false);
+      return;
+    }
+
     setIsLoadingSocieties(true);
     try {
       const normalized = await fetchSocietiesService();
@@ -82,11 +93,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoadingSocieties(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    refreshSocieties();
-  }, [refreshSocieties]);
+    if (!isInitialized) {
+      return;
+    }
+    void refreshSocieties();
+  }, [isInitialized, refreshSocieties]);
 
   const addSociety = useCallback(async (society: Society): Promise<Society> => {
     try {
@@ -307,6 +321,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     []
   );
 
+  const sendSocietyAdminPasswordReset = useCallback(
+    async (societyId: string, adminId: string): Promise<string> => {
+      try {
+        return await sendSocietyAdminPasswordResetService(societyId, adminId);
+      } catch (error) {
+        const message = getErrorMessage(error, 'Failed to send password reset email');
+        throw new Error(message);
+      }
+    },
+    []
+  );
+
   return (
     <DataContext.Provider
       value={{
@@ -326,6 +352,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateSocietyAdmin,
         toggleSocietyAdminStatus,
         deleteSocietyAdmin,
+        sendSocietyAdminPasswordReset,
       }}
     >
       {children}

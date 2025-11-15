@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building2, Lock, Mail } from 'lucide-react';
+import { Building2, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,6 +13,7 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -50,14 +51,7 @@ export const Login: React.FC = () => {
             <p className="text-gray-600">Super Admin Login</p>
           </div>
 
-          {/* Demo Credentials */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
-            <p className="text-sm text-green-800">
-              <strong>Demo Credentials:</strong>
-            </p>
-            <p className="text-sm text-green-700">Email: admin@society.com</p>
-            <p className="text-sm text-green-700">Password: admin123</p>
-          </div>
+         
 
           {error && (
             <Alert variant="destructive" className="mb-6">
@@ -80,21 +74,19 @@ export const Login: React.FC = () => {
                   required
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-12"
                   required
                 />
+            
               </div>
             </div>
 
@@ -108,7 +100,7 @@ export const Login: React.FC = () => {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Logging in...' : 'Login'}
             </Button>
 
             <p className="text-center text-sm text-gray-600">

@@ -26,6 +26,7 @@ interface ApiSocietyAdmin {
   email: string;
   status?: SocietyAdmin['status'];
   createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ApiEngagement {
@@ -365,6 +366,31 @@ export const deleteSocietyAdmin = async (societyId: string, adminId: string): Pr
   return withErrorHandling(async () => {
     await apiClient.delete(`/society-admin/${societyId}/${adminId}`);
   }, 'Failed to delete society admin');
+};
+
+export const sendSocietyAdminPasswordReset = async (
+  societyId: string,
+  adminId: string
+): Promise<string> => {
+  return withErrorHandling(async () => {
+    const response = await apiClient.post(
+      `/society-admin/${societyId}/${adminId}/send-reset-link`
+    );
+    const { message } = response.data ?? {};
+    return message ?? 'Password reset link sent successfully';
+  }, 'Failed to send password reset email');
+};
+
+export const completeSocietyAdminPasswordReset = async (payload: {
+  token: string;
+  email: string;
+  password: string;
+}): Promise<string> => {
+  return withErrorHandling(async () => {
+    const response = await apiClient.post('/society-admin/reset-password', payload);
+    const { message } = response.data ?? {};
+    return message ?? 'Password reset successful';
+  }, 'Failed to reset password');
 };
 
 export const normalizationUtils = {

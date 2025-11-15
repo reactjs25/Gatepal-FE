@@ -9,6 +9,7 @@ import { AdminMobileCards } from '../components/admin-management/AdminMobileCard
 import { AdminSummary } from '../components/admin-management/AdminSummary';
 import { EditAdminDialog } from '../components/admin-management/EditAdminDialog';
 import { AddAdminDialog, NewAdminForm } from '../components/admin-management/AddAdminDialog';
+
 type EditableAdminFields = Pick<SocietyAdmin, 'name' | 'email' | 'mobile'>;
 
 const initialNewAdminForm: NewAdminForm = {
@@ -26,6 +27,7 @@ export const AdminManagement: React.FC = () => {
     updateSocietyAdmin,
     toggleSocietyAdminStatus,
     deleteSocietyAdmin,
+    sendSocietyAdminPasswordReset,
   } = useData();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,8 +156,20 @@ export const AdminManagement: React.FC = () => {
     }
   };
 
-  const handleResetPassword = (adminEmail: string) => {
-    toast.success(`Password reset link sent to ${adminEmail}`);
+  const handleResetPassword = async (admin: SocietyAdmin) => {
+    try {
+      setPendingAdminId(admin.id);
+      const message = await sendSocietyAdminPasswordReset(admin.societyId, admin.id);
+      toast.success(message || `Password reset link sent to ${admin.email}`);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to send password reset email. Please try again.';
+      toast.error(message);
+    } finally {
+      setPendingAdminId(null);
+    }
   };
 
   const handleAddDialogClose = () => {

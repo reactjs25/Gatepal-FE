@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -11,8 +11,10 @@ import {
   Edit,
   Eye,
   Power,
+  Loader2,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { Society } from '../types';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -38,24 +40,424 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
+
+const parseCsvLine = (line: string): string[] => {
+  const result: string[] = [];
+  let current = '';
+  let insideQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+
+    if (char === '"') {
+      if (insideQuotes && line[index + 1] === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (char === ',' && !insideQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current);
+  return result;
+};
+
+const normalizeHeaderKey = (header: string) => header.trim().toLowerCase().replace(/[\s_-]+/g, '');
+
+const escapeCsvValue = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  const stringValue = String(value);
+  if (/[",\r\n]/.test(stringValue)) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+};
+
+const parseFlexibleDate = (value: string): Date | null => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const direct = new Date(trimmed);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct;
+  }
+
+  const parts = trimmed.split(/[/-]/);
+  if (parts.length === 3) {
+    let day: number;
+    let month: number;
+    let year: number;
+
+    if (parts[0].length === 4) {
+      year = Number.parseInt(parts[0], 10);
+      month = Number.parseInt(parts[1], 10) - 1;
+      day = Number.parseInt(parts[2], 10);
+    } else {
+      day = Number.parseInt(parts[0], 10);
+      month = Number.parseInt(parts[1], 10) - 1;
+      year = Number.parseInt(parts[2], 10);
+    }
+
+    if (
+      Number.isFinite(day) &&
+      Number.isFinite(month) &&
+      Number.isFinite(year) &&
+      day > 0 &&
+      month >= 0 &&
+      month < 12
+    ) {
+      const composed = new Date(Date.UTC(year, month, day));
+      if (!Number.isNaN(composed.getTime())) {
+        return composed;
+      }
+    }
+  }
+
+  return null;
+};
+
+const formatDateForCsv = (value: string | null | undefined) => {
+  if (!value) {
+    return '';
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return date.toISOString().split('T')[0];
+};
+
+const normalizeStatus = (value: string): 'Active' | 'Inactive' | 'Trial' => {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'inactive') {
+    return 'Inactive';
+  }
+  if (normalized === 'trial') {
+    return 'Trial';
+  }
+  return 'Active';
+};
+
+const parseOptionalNumber = (value: string | undefined, fallback?: number) => {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number.parseFloat(value);
+  if (Number.isNaN(parsed)) {
+    return fallback;
+  }
+  return parsed;
+};
 
 export const SocietyList: React.FC = () => {
-  const { societies, toggleSocietyStatus, isLoadingSocieties, societiesError } = useData();
+  const { societies, toggleSocietyStatus, isLoadingSocieties, societiesError, addSociety } =
+    useData();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [togglingSocietyId, setTogglingSocietyId] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const filteredSocieties = societies.filter((society) => {
-    const matchesSearch =
-      society.societyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      society.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      society.societyPin.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredSocieties = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return societies.filter((society) => {
+      const matchesSearch =
+        !query ||
+        society.societyName.toLowerCase().includes(query) ||
+        society.address.toLowerCase().includes(query) ||
+        society.societyPin.toLowerCase().includes(query);
 
-    const matchesStatus = statusFilter === 'all' || society.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || society.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
+  }, [societies, searchQuery, statusFilter]);
+
+  const handleExportSocieties = () => {
+    if (filteredSocieties.length === 0) {
+      toast.error('There are no societies to export.');
+      return;
+    }
+
+    try {
+      const rows: (string | number | null | undefined)[][] = [
+        [
+          'Society Name',
+          'Society PIN',
+          'Address',
+          'City',
+          'Country',
+          'Status',
+          'Engagement Start',
+          'Engagement End',
+          'Maintenance Due Date',
+          'Base Rate',
+          'GST',
+          'Rate Incl GST',
+          'Latitude',
+          'Longitude',
+          'Notes',
+        ],
+        ...filteredSocieties.map((society) => [
+          society.societyName,
+          society.societyPin,
+          society.address,
+          society.city ?? '',
+          society.country ?? '',
+          society.status,
+          formatDateForCsv(society.engagementStartDate),
+          formatDateForCsv(society.engagementEndDate),
+          society.maintenanceDueDate ?? '',
+          society.baseRate,
+          society.gst,
+          society.rateInclGst,
+          society.latitude ?? '',
+          society.longitude ?? '',
+          society.notes ?? '',
+        ]),
+      ];
+
+      const csvContent = rows.map((row) => row.map(escapeCsvValue).join(',')).join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+      if ('msSaveOrOpenBlob' in window.navigator) {
+        // @ts-expect-error - msSaveOrOpenBlob exists only in legacy browsers.
+        window.navigator.msSaveOrOpenBlob(blob, 'societies.csv');
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.href = url;
+        link.setAttribute('download', `societies-${timestamp}.csv`);
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      }
+
+      toast.success('Societies exported successfully.');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to export societies. Please try again.';
+      toast.error(message);
+    }
+  };
+
+  const handleImportButtonClick = () => {
+    if (isImporting) {
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const rawLines = text.split(/\r?\n/);
+      if (rawLines.length === 0) {
+        toast.error('The selected file is empty.');
+        return;
+      }
+
+      const headerLine = rawLines[0];
+      const headers = parseCsvLine(headerLine).map(normalizeHeaderKey);
+      const findHeaderIndex = (...keys: string[]) =>
+        headers.findIndex((header) => keys.includes(header));
+
+      const nameIndex = findHeaderIndex('societyname', 'name');
+      const pinIndex = findHeaderIndex('societypin', 'pin');
+      const addressIndex = findHeaderIndex('address');
+      const cityIndex = findHeaderIndex('city');
+      const countryIndex = findHeaderIndex('country');
+      const statusIndex = findHeaderIndex('status');
+      const startDateIndex = findHeaderIndex('engagementstart', 'engagementstartdate', 'startdate');
+      const endDateIndex = findHeaderIndex('engagementend', 'engagementenddate', 'enddate');
+      const maintenanceIndex = findHeaderIndex('maintenanceduedate', 'maintenanceday');
+      const baseRateIndex = findHeaderIndex('baserate');
+      const gstIndex = findHeaderIndex('gst');
+      const rateInclIndex = findHeaderIndex('rateinclgst', 'totalrate');
+      const latitudeIndex = findHeaderIndex('latitude', 'lat');
+      const longitudeIndex = findHeaderIndex('longitude', 'lng', 'long');
+      const notesIndex = findHeaderIndex('notes', 'remarks');
+
+      if (
+        nameIndex === -1 ||
+        pinIndex === -1 ||
+        addressIndex === -1 ||
+        startDateIndex === -1 ||
+        endDateIndex === -1 ||
+        baseRateIndex === -1
+      ) {
+        toast.error(
+          'CSV must include Society Name, PIN, Address, Engagement Start, Engagement End, and Base Rate columns.'
+        );
+        return;
+      }
+
+      let importedCount = 0;
+      let skippedCount = 0;
+      const errorDetails: string[] = [];
+      const now = new Date();
+
+      for (let lineIndex = 1; lineIndex < rawLines.length; lineIndex += 1) {
+        const line = rawLines[lineIndex];
+        if (!line || !line.trim()) {
+          continue;
+        }
+
+        const values = parseCsvLine(line).map((value) => value.trim());
+        if (values.every((value) => value.length === 0)) {
+          continue;
+        }
+
+        const societyName = values[nameIndex] ?? '';
+        const societyPin = values[pinIndex] ?? '';
+        const address = values[addressIndex] ?? '';
+        const engagementStartValue = values[startDateIndex] ?? '';
+        const engagementEndValue = values[endDateIndex] ?? '';
+        const baseRateValue = values[baseRateIndex] ?? '';
+
+        if (!societyName || !societyPin || !address || !engagementStartValue || !engagementEndValue || !baseRateValue) {
+          skippedCount += 1;
+          errorDetails.push(`Row ${lineIndex + 1}: Missing required fields.`);
+          continue;
+        }
+
+        const existingSociety = societies.find(
+          (society) =>
+            society.societyPin.toLowerCase() === societyPin.toLowerCase() ||
+            society.societyName.toLowerCase() === societyName.toLowerCase()
+        );
+        if (existingSociety) {
+          skippedCount += 1;
+          errorDetails.push(`Row ${lineIndex + 1}: Society "${societyName}" already exists.`);
+          continue;
+        }
+
+        const engagementStartDate = parseFlexibleDate(engagementStartValue);
+        const engagementEndDate = parseFlexibleDate(engagementEndValue);
+
+        if (!engagementStartDate || !engagementEndDate) {
+          skippedCount += 1;
+          errorDetails.push(`Row ${lineIndex + 1}: Invalid engagement dates.`);
+          continue;
+        }
+
+        const baseRate = parseOptionalNumber(baseRateValue);
+        if (baseRate === undefined || Number.isNaN(baseRate) || baseRate <= 0) {
+          skippedCount += 1;
+          errorDetails.push(`Row ${lineIndex + 1}: Invalid base rate.`);
+          continue;
+        }
+
+        const gstValue = parseOptionalNumber(
+          gstIndex >= 0 ? values[gstIndex] : undefined,
+          Number.parseFloat((baseRate * 0.18).toFixed(2))
+        );
+        const normalizedGst =
+          gstValue !== undefined ? Number.parseFloat(gstValue.toFixed(2)) : Number.parseFloat((baseRate * 0.18).toFixed(2));
+        const rateInclGstValue = parseOptionalNumber(
+          rateInclIndex >= 0 ? values[rateInclIndex] : undefined
+        );
+        const normalizedRateIncl =
+          rateInclGstValue !== undefined
+            ? Number.parseFloat(rateInclGstValue.toFixed(2))
+            : Number.parseFloat((baseRate + normalizedGst).toFixed(2));
+        const maintenanceDueDateValue =
+          parseOptionalNumber(maintenanceIndex >= 0 ? values[maintenanceIndex] : undefined) ?? 1;
+        const latitudeValue = parseOptionalNumber(latitudeIndex >= 0 ? values[latitudeIndex] : undefined);
+        const longitudeValue = parseOptionalNumber(longitudeIndex >= 0 ? values[longitudeIndex] : undefined);
+
+        const statusValue =
+          statusIndex >= 0 ? normalizeStatus(values[statusIndex] ?? '') : ('Active' as const);
+
+        const societyPayload: Society = {
+          id: `soc${Date.now()}-${lineIndex}-${Math.random().toString(36).slice(2, 8)}`,
+          societyName,
+          address,
+          city: cityIndex >= 0 ? values[cityIndex] ?? '' : '',
+          country: countryIndex >= 0 ? values[countryIndex] ?? '' : '',
+          latitude: latitudeValue ?? undefined,
+          longitude: longitudeValue ?? undefined,
+          totalWings: 0,
+          wings: [],
+          entryGates: [],
+          exitGates: [],
+          societyAdmins: [],
+          engagementStartDate: engagementStartDate.toISOString(),
+          engagementEndDate: engagementEndDate.toISOString(),
+          maintenanceDueDate:
+            Number.isFinite(maintenanceDueDateValue)
+              ? Math.min(Math.max(Math.round(maintenanceDueDateValue), 1), 30)
+              : 1,
+          baseRate,
+          gst: normalizedGst,
+          rateInclGst: normalizedRateIncl,
+          status: statusValue,
+          societyPin,
+          notes: notesIndex >= 0 ? values[notesIndex] || undefined : undefined,
+          createdBy: user?.name || 'Admin',
+          lastUpdatedBy: user?.name || 'Admin',
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        };
+
+        try {
+          await addSociety(societyPayload);
+          importedCount += 1;
+        } catch (error) {
+          skippedCount += 1;
+          const message =
+            error instanceof Error ? error.message : 'Failed to create society due to server error.';
+          errorDetails.push(`Row ${lineIndex + 1}: ${message}`);
+        }
+      }
+
+      if (importedCount > 0) {
+        toast.success(`Imported ${importedCount} societ${importedCount === 1 ? 'y' : 'ies'} successfully.`);
+      }
+      if (skippedCount > 0) {
+        const preview = errorDetails.slice(0, 3).join(' ');
+        const more = errorDetails.length > 3 ? ' Additional errors omitted.' : '';
+        toast.error(
+          `Skipped ${skippedCount} row${skippedCount === 1 ? '' : 's'} during import. ${preview}${more}`
+        );
+      }
+      if (importedCount === 0 && skippedCount === 0) {
+        toast.error('No valid society entries found in the selected file.');
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to import societies. Please try again.';
+      toast.error(message);
+    } finally {
+      setIsImporting(false);
+      event.target.value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleStatusToggle = async (societyId: string) => {
     try {
@@ -74,6 +476,13 @@ export const SocietyList: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="sr-only"
+        onChange={handleImportFileChange}
+      />
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -110,11 +519,20 @@ export const SocietyList: React.FC = () => {
 
             </SelectContent>
           </Select>
-          <Button variant="outline">
-            <Upload className="w-4 h-4 mr-1.5" />
-            Import
+          <Button variant="outline" onClick={handleImportButtonClick} disabled={isImporting}>
+            {isImporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-1.5" />
+                Import
+              </>
+            )}
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportSocieties}>
             <Download className="w-4 h-4 mr-1.5" />
             Export
           </Button>

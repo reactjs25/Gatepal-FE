@@ -15,7 +15,7 @@ type AdminMobileCardsProps = {
   admins: SocietyAdmin[];
   onNavigateToSociety: (societyId: string) => void;
   onEdit: (admin: SocietyAdmin) => void;
-  onResetPassword: (email: string) => void;
+  onResetPassword: (admin: SocietyAdmin) => void;
   onToggleStatus: (admin: SocietyAdmin) => void;
   onDelete: (admin: SocietyAdmin) => void;
   pendingAdminId: string | null;
@@ -79,7 +79,10 @@ export const AdminMobileCards: React.FC<AdminMobileCardsProps> = ({
                   <Edit className="w-4 h-4 mr-1.5" />
                   Edit Details
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onResetPassword(admin.email)}>
+                <DropdownMenuItem
+                  onClick={() => onResetPassword(admin)}
+                  disabled={pendingAdminId === admin.id}
+                >
                   <Key className="w-4 h-4 mr-1.5" />
                   Reset Password
                 </DropdownMenuItem>

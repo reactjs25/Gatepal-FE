@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, Mail, User } from 'lucide-react';
+import { Lock, Mail, Phone, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { useAuth } from '../context/AuthContext';
 const logo = new URL('../assets/f327b419d75f4a4c0592f1b2bf0e3f99041c24be.png', import.meta.url).href;
 
 export const Signup: React.FC = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,15 +31,21 @@ export const Signup: React.FC = () => {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      navigate('/login', {
-        state: {
-          email,
-          fromSignup: true,
-        },
+      const success = await signup({
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        phoneNumber: phoneNumber.trim(),
+        password,
       });
+      if (success) {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError('We were unable to submit your request. Please try again.');
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'We were unable to submit your request. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -92,6 +101,23 @@ export const Signup: React.FC = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="9876543210"
+                  value={phoneNumber}
+                  onChange={(event) => setPhoneNumber(event.target.value)}
+                  className="pl-10"
+                  required
+                  minLength={8}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -103,6 +129,7 @@ export const Signup: React.FC = () => {
                   onChange={(event) => setPassword(event.target.value)}
                   className="pl-10"
                   required
+                  minLength={8}
                 />
               </div>
             </div>
@@ -119,6 +146,7 @@ export const Signup: React.FC = () => {
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   className="pl-10"
                   required
+                  minLength={8}
                 />
               </div>
             </div>
@@ -130,7 +158,7 @@ export const Signup: React.FC = () => {
             <p className="text-center text-sm text-gray-600">
               Already have an account?{' '}
               <Link to="/login" className="font-medium text-green-600 hover:text-green-700">
-                Sign in
+                Login
               </Link>
             </p>
           </form>
