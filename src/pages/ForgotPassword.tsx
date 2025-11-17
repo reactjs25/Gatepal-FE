@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -13,11 +13,45 @@ export const ForgotPassword: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
   const { requestPasswordReset } = useAuth();
+
+  // Update page title
+  useEffect(() => {
+    document.title = 'Reset Password - GatePal';
+  }, []);
+
+  // Validate email
+  const validateEmail = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return 'Email address is required';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return undefined;
+  };
+
+  // Handle email change with validation
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    const error = validateEmail(value);
+    setEmailError(error);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate email before submission
+    const emailValidationError = validateEmail(email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -70,19 +104,24 @@ export const ForgotPassword: React.FC = () => {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">
+                  Email Address <span className="text-red-500">*</span>
+                </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="admin@society.com"
+                    placeholder="Enter your email address"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={handleEmailChange}
                     className="pl-10"
                     required
                   />
                 </div>
+                {emailError && (
+                  <p className="text-sm text-red-500">{emailError}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>

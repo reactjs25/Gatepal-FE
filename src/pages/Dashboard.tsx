@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Users, CheckCircle, Clock, TrendingUp, Plus } from 'lucide-react';
 import { useData } from '../context/DataContext';
@@ -9,6 +9,11 @@ import { Badge } from '../components/ui/badge';
 export const Dashboard: React.FC = () => {
   const { societies, allAdmins } = useData();
   const navigate = useNavigate();
+
+  // Update page title
+  useEffect(() => {
+    document.title = 'Dashboard - GatePal';
+  }, []);
 
   const activeSocieties = societies.filter((s) => s.status === 'Active').length;
   const totalUnits = societies.reduce(

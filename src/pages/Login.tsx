@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Building2, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -14,12 +14,46 @@ export const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword] = useState(false);
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Update page title
+  useEffect(() => {
+    document.title = 'Super Admin Login - GatePal';
+  }, []);
+
+  // Validate email
+  const validateEmail = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return 'Email address is required';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return undefined;
+  };
+
+  // Handle email change with validation
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    const error = validateEmail(value);
+    setEmailError(error);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate email before submission
+    const emailValidationError = validateEmail(email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -67,13 +101,18 @@ export const Login: React.FC = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@society.com"
+                  placeholder="Enter your email address"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
                   className="pl-10"
                   required
                 />
               </div>
+              {emailError && (
+                <p className="text-sm text-red-500">{emailError}</p>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -86,7 +125,6 @@ export const Login: React.FC = () => {
                   className="pl-10 pr-12"
                   required
                 />
-            
               </div>
             </div>
 

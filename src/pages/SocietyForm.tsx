@@ -43,7 +43,7 @@ type TabKey = (typeof tabOrder)[number];
 export const SocietyForm: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addSociety, updateSociety, getSocietyById, fetchSocietyById } = useData();
+  const { addSociety, updateSociety, getSocietyById, fetchSocietyById, allAdmins } = useData();
   const { user } = useAuth();
   const isEditMode = !!id;
 
@@ -304,7 +304,10 @@ export const SocietyForm: React.FC = () => {
       updatedWings[index].name = value as string;
       clearError(`structure.wings.${updatedWings[index].id}.name`);
     } else if (field === 'totalUnits') {
-      const count = parseInt(value as string, 10) || 0;
+      // Limit to 4 digits (max 9999) to prevent page unresponsive
+      const inputValue = value as string;
+      const numericValue = inputValue.replace(/\D/g, ''); // Remove non-numeric characters
+      const count = Math.min(parseInt(numericValue, 10) || 0, 9999); // Max 9999
       const currentUnits = updatedWings[index].units || [];
 
       // If increasing units, add new ones
@@ -425,7 +428,13 @@ export const SocietyForm: React.FC = () => {
 
   const updateAdmin = (index: number, field: string, value: string) => {
     const updated = [...admins];
-    updated[index] = { ...updated[index], [field]: value };
+    if (field === 'mobile') {
+      // Only allow numeric characters and limit to 10 digits
+      const numericValue = value.replace(/\D/g, '').slice(0, 10);
+      updated[index] = { ...updated[index], [field]: numericValue };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
     setAdmins(updated);
     const adminId = updated[index].id;
     if (field === 'name') {
@@ -500,6 +509,9 @@ export const SocietyForm: React.FC = () => {
         if (!wing.totalUnits || wing.totalUnits <= 0) {
           tabErrors[`${wingKey}.totalUnits`] = 'Total units must be greater than 0.';
         }
+        if (wing.totalUnits > 9999) {
+          tabErrors[`${wingKey}.totalUnits`] = 'Total units cannot exceed 9999.';
+        }
         wing.units.forEach((unit) => {
           if (!unit.number.trim()) {
             tabErrors[`${wingKey}.units.${unit.id}`] = 'Unit number is required.';
@@ -531,19 +543,72 @@ export const SocietyForm: React.FC = () => {
       if (admins.length === 0) {
         tabErrors['admins.general'] = 'Add at least one society admin.';
       }
-      const emailRegex = /\S+@\S+\.\S+/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const mobileNumbers = new Set<string>();
+      const emailAddresses = new Set<string>();
       admins.forEach((admin) => {
         const adminKey = `admins.${admin.id}`;
         if (!admin.name.trim()) {
           tabErrors[`${adminKey}.name`] = 'Admin name is required.';
         }
         if (!admin.mobile.trim()) {
-          tabErrors[`${adminKey}.mobile`] = 'Admin mobile is required.';
+          tabErrors[`${adminKey}.mobile`] = 'Phone number is required.';
+        } else {
+          // Validate mobile: numeric only, exactly 10 digits
+          const mobileDigits = admin.mobile.replace(/\D/g, '');
+          if (!/^\d+$/.test(mobileDigits)) {
+            tabErrors[`${adminKey}.mobile`] = 'Phone number can only contain numbers.';
+          } else if (mobileDigits.length !== 10) {
+            tabErrors[`${adminKey}.mobile`] = 'Phone number must be exactly 10 digits.';
+          } else {
+            // Check for duplicates within the form
+            if (mobileNumbers.has(mobileDigits)) {
+              tabErrors[`${adminKey}.mobile`] = 'This phone number is already used by another admin in this form.';
+            } else {
+              mobileNumbers.add(mobileDigits);
+            }
+            
+            // Check for duplicates across all existing admins (excluding current society's admins in edit mode)
+            const existingAdmin = allAdmins.find(
+              (a) => {
+                // In edit mode, exclude admins from the current society
+                if (isEditMode && id && a.societyId === id) {
+                  return false;
+                }
+                return a.mobile.replace(/\D/g, '') === mobileDigits;
+              }
+            );
+            if (existingAdmin) {
+              tabErrors[`${adminKey}.mobile`] = `This phone number already exists in ${existingAdmin.societyName}.`;
+            }
+          }
         }
         if (!admin.email.trim()) {
           tabErrors[`${adminKey}.email`] = 'Admin email is required.';
         } else if (!emailRegex.test(admin.email.trim())) {
-          tabErrors[`${adminKey}.email`] = 'Enter a valid email address.';
+          tabErrors[`${adminKey}.email`] = 'Please enter a valid email address.';
+        } else {
+          const normalizedEmail = admin.email.trim().toLowerCase();
+          // Check for duplicates within the form
+          if (emailAddresses.has(normalizedEmail)) {
+            tabErrors[`${adminKey}.email`] = 'This email is already used by another admin in this form.';
+          } else {
+            emailAddresses.add(normalizedEmail);
+          }
+          
+          // Check for duplicates across all existing admins (excluding current society's admins in edit mode)
+          const existingAdmin = allAdmins.find(
+            (a) => {
+              // In edit mode, exclude admins from the current society
+              if (isEditMode && id && a.societyId === id) {
+                return false;
+              }
+              return a.email.toLowerCase() === normalizedEmail;
+            }
+          );
+          if (existingAdmin) {
+            tabErrors[`${adminKey}.email`] = `This email already exists in ${existingAdmin.societyName}.`;
+          }
         }
       });
     }
@@ -699,7 +764,7 @@ export const SocietyForm: React.FC = () => {
       baseRate: baseRateValue,
       gst: gstValue,
       rateInclGst: rateInclGstValue,
-      status: formData.status,
+      status: formData.status as 'Active' | 'Inactive' | 'Trial',
       societyPin: formData.societyPin,
       notes: notesValue || undefined,
       createdBy: user?.name || 'Admin',
@@ -778,6 +843,7 @@ export const SocietyForm: React.FC = () => {
                     </Label>
                     <Input
                       id="societyName"
+                      placeholder="Enter your society name"
                       value={formData.societyName}
                       onChange={(e) =>
                         handleInputChange('societyName', e.target.value, 'basic.societyName')
@@ -800,6 +866,7 @@ export const SocietyForm: React.FC = () => {
                   </Label>
                   <Textarea
                     id="address"
+                    placeholder="Enter your address"
                     value={formData.address}
                     onChange={(e) => handleInputChange('address', e.target.value, 'basic.address')}
                     rows={3}
@@ -1041,6 +1108,7 @@ export const SocietyForm: React.FC = () => {
                                 onChange={(e) => updateWing(index, 'totalUnits', e.target.value)}
                                 placeholder="20"
                                 min={1}
+                                max={9999}
                                 required
                               />
                               {errors[`structure.wings.${wing.id}.totalUnits`] && (
@@ -1256,7 +1324,7 @@ export const SocietyForm: React.FC = () => {
                             <Input
                               value={admin.name}
                               onChange={(e) => updateAdmin(index, 'name', e.target.value)}
-                              placeholder="Admin Name"
+                              placeholder="Enter your name"
                                 required
                             />
                               {errors[`admins.${admin.id}.name`] && (
@@ -1267,13 +1335,14 @@ export const SocietyForm: React.FC = () => {
                           </div>
                           <div className="space-y-2">
                               <Label>
-                                Mobile <span className="text-red-500">*</span>
+                                Phone <span className="text-red-500">*</span>
                               </Label>
                             <Input
                               value={admin.mobile}
                               onChange={(e) => updateAdmin(index, 'mobile', e.target.value)}
-                              placeholder="+91-9876543210"
+                              placeholder="Enter your phone"
                                 required
+                                maxLength={10}
                             />
                               {errors[`admins.${admin.id}.mobile`] && (
                                 <p className="text-sm text-red-600">
@@ -1289,7 +1358,7 @@ export const SocietyForm: React.FC = () => {
                               type="email"
                               value={admin.email}
                               onChange={(e) => updateAdmin(index, 'email', e.target.value)}
-                              placeholder="admin@example.com"
+                              placeholder="Enter your email"
                                 required
                             />
                               {errors[`admins.${admin.id}.email`] && (

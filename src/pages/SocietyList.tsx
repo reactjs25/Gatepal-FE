@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -12,6 +12,9 @@ import {
   Eye,
   Power,
   Loader2,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { Society } from '../types';
@@ -160,6 +163,9 @@ const parseOptionalNumber = (value: string | undefined, fallback?: number) => {
   return parsed;
 };
 
+type SortField = 'societyName' | 'societyPin' | 'address' | 'totalWings' | 'units' | 'admins' | 'status' | 'engagement';
+type SortDirection = 'asc' | 'desc';
+
 export const SocietyList: React.FC = () => {
   const { societies, toggleSocietyStatus, isLoadingSocieties, societiesError, addSociety } =
     useData();
@@ -170,10 +176,19 @@ export const SocietyList: React.FC = () => {
   const [togglingSocietyId, setTogglingSocietyId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
-  const filteredSocieties = useMemo(() => {
+  // Update page title
+  useEffect(() => {
+    document.title = 'Societies - GatePal';
+  }, []);
+
+  const filteredAndSortedSocieties = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return societies.filter((society) => {
+    let filtered = societies.filter((society) => {
       const matchesSearch =
         !query ||
         society.societyName.toLowerCase().includes(query) ||
@@ -184,10 +199,77 @@ export const SocietyList: React.FC = () => {
 
       return matchesSearch && matchesStatus;
     });
-  }, [societies, searchQuery, statusFilter]);
+
+    // Apply sorting
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue: string | number;
+        let bValue: string | number;
+
+        switch (sortField) {
+          case 'societyName':
+            aValue = a.societyName.toLowerCase();
+            bValue = b.societyName.toLowerCase();
+            break;
+          case 'societyPin':
+            aValue = a.societyPin.toLowerCase();
+            bValue = b.societyPin.toLowerCase();
+            break;
+          case 'address':
+            aValue = a.address.toLowerCase();
+            bValue = b.address.toLowerCase();
+            break;
+          case 'totalWings':
+            aValue = a.totalWings;
+            bValue = b.totalWings;
+            break;
+          case 'units':
+            aValue = a.wings.reduce((sum, wing) => sum + wing.totalUnits, 0);
+            bValue = b.wings.reduce((sum, wing) => sum + wing.totalUnits, 0);
+            break;
+          case 'admins':
+            aValue = a.societyAdmins.length;
+            bValue = b.societyAdmins.length;
+            break;
+          case 'status':
+            aValue = a.status;
+            bValue = b.status;
+            break;
+          case 'engagement':
+            aValue = new Date(a.engagementStartDate).getTime();
+            bValue = new Date(b.engagementStartDate).getTime();
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [societies, searchQuery, statusFilter, sortField, sortDirection]);
+
+  const paginatedSocieties = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedSocieties.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedSocieties, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedSocieties.length / itemsPerPage);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const handleExportSocieties = () => {
-    if (filteredSocieties.length === 0) {
+    if (filteredAndSortedSocieties.length === 0) {
       toast.error('There are no societies to export.');
       return;
     }
@@ -211,7 +293,7 @@ export const SocietyList: React.FC = () => {
           'Longitude',
           'Notes',
         ],
-        ...filteredSocieties.map((society) => [
+        ...filteredAndSortedSocieties.map((society) => [
           society.societyName,
           society.societyPin,
           society.address,
@@ -544,14 +626,70 @@ export const SocietyList: React.FC = () => {
         <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Society Name</TableHead>
-              <TableHead>PIN</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Wings</TableHead>
-              <TableHead>Units</TableHead>
-              <TableHead>Admins</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Engagement</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('societyName')} className="h-8 px-2">
+                  Society Name
+                  {sortField === 'societyName' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('societyPin')} className="h-8 px-2">
+                  PIN
+                  {sortField === 'societyPin' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('address')} className="h-8 px-2">
+                  Location
+                  {sortField === 'address' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('totalWings')} className="h-8 px-2">
+                  Wings
+                  {sortField === 'totalWings' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('units')} className="h-8 px-2">
+                  Units
+                  {sortField === 'units' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('admins')} className="h-8 px-2">
+                  Admins
+                  {sortField === 'admins' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('status')} className="h-8 px-2">
+                  Status
+                  {sortField === 'status' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" onClick={() => handleSort('engagement')} className="h-8 px-2">
+                  Engagement
+                  {sortField === 'engagement' && (
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
+              </TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -562,14 +700,14 @@ export const SocietyList: React.FC = () => {
                   Loading societies...
                 </TableCell>
               </TableRow>
-            ) : filteredSocieties.length === 0 ? (
+            ) : paginatedSocieties.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   No societies found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredSocieties.map((society) => (
+              paginatedSocieties.map((society) => (
                 <TableRow 
                   key={society.id} 
                   className="hover:bg-gray-50 cursor-pointer"
@@ -668,12 +806,12 @@ export const SocietyList: React.FC = () => {
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
             Loading societies...
           </div>
-        ) : filteredSocieties.length === 0 ? (
+        ) : paginatedSocieties.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
             No societies found
           </div>
         ) : (
-          filteredSocieties.map((society) => (
+          paginatedSocieties.map((society) => (
             <div
               key={society.id}
               className="bg-white rounded-lg border border-gray-200 p-4 space-y-4"
@@ -786,10 +924,44 @@ export const SocietyList: React.FC = () => {
         )}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedSocieties.length)} of {filteredAndSortedSocieties.length} societies
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
-      <div className="mt-4 text-sm text-gray-600">
-        Showing {filteredSocieties.length} of {societies.length} societies
-      </div>
+      {totalPages <= 1 && (
+        <div className="mt-4 text-sm text-gray-600">
+          Showing {filteredAndSortedSocieties.length} of {societies.length} societies
+        </div>
+      )}
       {societiesError && (
         <div className="mt-2 text-sm text-red-600" role="alert">
           {societiesError}
