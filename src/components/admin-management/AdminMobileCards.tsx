@@ -3,6 +3,7 @@ import { Users, MoreVertical, Edit, Power, Trash2, Key } from 'lucide-react';
 import { SocietyAdmin } from '../../types';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { formatDateDDMMYYYY } from '../../lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,13 +130,7 @@ export const AdminMobileCards: React.FC<AdminMobileCardsProps> = ({
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500 mb-1">Added On</p>
-              <p className="text-xs text-gray-600">
-                {new Date(admin.createdAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </p>
+              <p className="text-xs text-gray-600">{formatDateDDMMYYYY(admin.createdAt)}</p>
             </div>
           </div>
         </div>

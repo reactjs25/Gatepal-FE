@@ -145,7 +145,7 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="new-name">Name *</Label>
+            <Label htmlFor="new-name" data-required>Name</Label>
             <Input
               id="new-name"
               value={form.name}
@@ -154,7 +154,7 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="new-email">Email *</Label>
+            <Label htmlFor="new-email" data-required>Email</Label>
             <Input
               id="new-email"
               type="email"
@@ -163,11 +163,11 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
               placeholder="Enter your email"
             />
             {emailError && (
-              <p className="text-sm text-red-500">{emailError}</p>
+              <p className="text-sm validation-message">{emailError}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="new-mobile">Phone *</Label>
+            <Label htmlFor="new-mobile" data-required>Phone</Label>
             <Input
               id="new-mobile"
               value={form.mobile}
@@ -176,11 +176,11 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
               maxLength={10}
             />
             {mobileError && (
-              <p className="text-sm text-red-500">{mobileError}</p>
+              <p className="text-sm validation-message">{mobileError}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="new-society">Society *</Label>
+            <Label htmlFor="new-society" data-required>Society</Label>
             <Select
               value={form.societyId}
               onValueChange={(value) => onChange('societyId', value)}

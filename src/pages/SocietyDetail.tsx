@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { formatDateDDMMYYYY } from '../lib/utils';
 
 export const SocietyDetail: React.FC = () => {
   const { id } = useParams();
@@ -398,7 +399,7 @@ export const SocietyDetail: React.FC = () => {
                       Start Date
                     </p>
                     <p className="text-gray-900">
-                      {new Date(society.engagementStartDate).toLocaleDateString()}
+                      {formatDateDDMMYYYY(society.engagementStartDate)}
                     </p>
                   </div>
                   <div>
@@ -407,7 +408,7 @@ export const SocietyDetail: React.FC = () => {
                       End Date
                     </p>
                     <p className="text-gray-900">
-                      {new Date(society.engagementEndDate).toLocaleDateString()}
+                      {formatDateDDMMYYYY(society.engagementEndDate)}
                     </p>
                   </div>
                 </div>

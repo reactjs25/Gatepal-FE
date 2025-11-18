@@ -1,26 +1,36 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useData } from '../context/DataContext';
-import { SocietyAdmin } from '../types';
-import { Button } from '../components/ui/button';
-import { AdminManagementHeader } from '../components/admin-management/AdminManagementHeader';
-import { AdminDesktopTable } from '../components/admin-management/AdminDesktopTable';
-import { AdminMobileCards } from '../components/admin-management/AdminMobileCards';
-import { AdminSummary } from '../components/admin-management/AdminSummary';
-import { EditAdminDialog } from '../components/admin-management/EditAdminDialog';
-import { AddAdminDialog, NewAdminForm } from '../components/admin-management/AddAdminDialog';
+import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+import { useData } from "../context/DataContext";
+import { SocietyAdmin } from "../types";
+import { Button } from "../components/ui/button";
+import { AdminManagementHeader } from "../components/admin-management/AdminManagementHeader";
+import { AdminDesktopTable } from "../components/admin-management/AdminDesktopTable";
+import { AdminMobileCards } from "../components/admin-management/AdminMobileCards";
+import { EditAdminDialog } from "../components/admin-management/EditAdminDialog";
+import {
+  AddAdminDialog,
+  NewAdminForm,
+} from "../components/admin-management/AddAdminDialog";
+import { formatDateDDMMYYYY } from "../lib/utils";
 
-type SortField = 'name' | 'email' | 'mobile' | 'societyName' | 'status' | 'createdAt';
-type SortDirection = 'asc' | 'desc';
+type SortField =
+  | "name"
+  | "email"
+  | "mobile"
+  | "societyName"
+  | "status"
+  | "createdAt";
+type SortDirection = "asc" | "desc";
 
-type EditableAdminFields = Pick<SocietyAdmin, 'name' | 'email' | 'mobile'>;
+type EditableAdminFields = Pick<SocietyAdmin, "name" | "email" | "mobile">;
 
 const initialNewAdminForm: NewAdminForm = {
-  name: '',
-  email: '',
-  mobile: '',
-  societyId: '',
+  name: "",
+  email: "",
+  mobile: "",
+  societyId: "",
 };
 
 export const AdminManagement: React.FC = () => {
@@ -34,7 +44,7 @@ export const AdminManagement: React.FC = () => {
     sendSocietyAdminPasswordReset,
   } = useData();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingAdmin, setEditingAdmin] = useState<SocietyAdmin | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -42,70 +52,108 @@ export const AdminManagement: React.FC = () => {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
   const [pendingAdminId, setPendingAdminId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Update page title
   useEffect(() => {
-    document.title = 'Society Admins - GatePal';
+    document.title = "Society Admins - GatePal";
   }, []);
 
   const filteredAndSortedAdmins = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    
+
     // First apply status filter
     let filtered = allAdmins.filter((admin) => {
-      return statusFilter === 'all' || admin.status === statusFilter;
+      return statusFilter === "all" || admin.status === statusFilter;
     });
-    
+
     // Then apply search filter if query exists
     if (query && query.length > 0) {
       filtered = filtered.filter((admin) => {
         // Search matching - check all fields with null/undefined safety
-        const adminName = String(admin.name || '').toLowerCase().trim();
-        const adminEmail = String(admin.email || '').toLowerCase().trim();
-        const adminSociety = String(admin.societyName || '').toLowerCase().trim();
-        const adminMobile = String(admin.mobile || '').replace(/\D/g, '');
-        const queryDigits = query.replace(/\D/g, '');
-        
+        const adminName = String(admin.name || "")
+          .toLowerCase()
+          .trim();
+        const adminEmail = String(admin.email || "")
+          .toLowerCase()
+          .trim();
+        const adminSociety = String(admin.societyName || "")
+          .toLowerCase()
+          .trim();
+        const adminMobile = String(admin.mobile || "").replace(/\D/g, "");
+        const adminStatus = String(admin.status || "")
+          .toLowerCase()
+          .trim();
+        const queryDigits = query.replace(/\D/g, "");
+
         // Check name
         const matchesName = adminName.length > 0 && adminName.includes(query);
-        
+
         // Check email
-        const matchesEmail = adminEmail.length > 0 && adminEmail.includes(query);
-        
+        const matchesEmail =
+          adminEmail.length > 0 && adminEmail.includes(query);
+
         // Check society
-        const matchesSociety = adminSociety.length > 0 && adminSociety.includes(query);
-        
+        const matchesSociety =
+          adminSociety.length > 0 && adminSociety.includes(query);
+
         // Check mobile (only if query has digits)
-        const matchesMobile = queryDigits.length > 0 && adminMobile.length > 0 && adminMobile.includes(queryDigits);
-        
+        const matchesMobile =
+          queryDigits.length > 0 &&
+          adminMobile.length > 0 &&
+          adminMobile.includes(queryDigits);
+
         // Check date (Added On) - try different date formats
         let matchesDate = false;
         if (admin.createdAt) {
           try {
             const date = new Date(admin.createdAt);
             if (!isNaN(date.getTime())) {
-              const dateStr = date.toLocaleDateString();
-              const dateStrLower = dateStr.toLowerCase();
-              const dateStrDash = dateStr.replace(/\//g, '-');
-              const dateStrDot = dateStr.replace(/\//g, '.');
-              const year = date.getFullYear().toString();
-              matchesDate = dateStrLower.includes(query) || 
-                           dateStrDash.includes(query) ||
-                           dateStrDot.includes(query) ||
-                           dateStr.includes(query) ||
-                           year.includes(query);
+              const formattedDate = formatDateDDMMYYYY(date);
+              if (formattedDate !== "-") {
+                const formattedLower = formattedDate.toLowerCase();
+                const slashVariant = formattedDate
+                  .replace(/-/g, "/")
+                  .toLowerCase();
+                const dotVariant = formattedDate
+                  .replace(/-/g, ".")
+                  .toLowerCase();
+                const compactVariant = formattedDate.replace(/-/g, "");
+                const isoDate = date.toISOString().split("T")[0];
+                const year = date.getFullYear().toString();
+                matchesDate =
+                  formattedLower.includes(query) ||
+                  slashVariant.includes(query) ||
+                  dotVariant.includes(query) ||
+                  isoDate.includes(query) ||
+                  (queryDigits.length > 0 &&
+                    compactVariant.includes(queryDigits)) ||
+                  year.includes(query);
+              }
             }
           } catch (e) {
-            // Ignore date parsing errors
+            console.error(e);
           }
         }
 
-        return matchesName || matchesEmail || matchesSociety || matchesMobile || matchesDate;
+        const statusMatches =
+          adminStatus.length > 0 &&
+          (["active", "inactive", "trial"].includes(query)
+            ? adminStatus === query
+            : adminStatus.includes(query));
+
+        return (
+          matchesName ||
+          matchesEmail ||
+          matchesSociety ||
+          matchesMobile ||
+          matchesDate ||
+          statusMatches
+        );
       });
     }
 
@@ -116,27 +164,27 @@ export const AdminManagement: React.FC = () => {
         let bValue: string | number;
 
         switch (sortField) {
-          case 'name':
+          case "name":
             aValue = a.name.toLowerCase();
             bValue = b.name.toLowerCase();
             break;
-          case 'email':
+          case "email":
             aValue = a.email.toLowerCase();
             bValue = b.email.toLowerCase();
             break;
-          case 'mobile':
+          case "mobile":
             aValue = a.mobile;
             bValue = b.mobile;
             break;
-          case 'societyName':
+          case "societyName":
             aValue = a.societyName.toLowerCase();
             bValue = b.societyName.toLowerCase();
             break;
-          case 'status':
+          case "status":
             aValue = a.status;
             bValue = b.status;
             break;
-          case 'createdAt':
+          case "createdAt":
             aValue = new Date(a.createdAt).getTime();
             bValue = new Date(b.createdAt).getTime();
             break;
@@ -144,8 +192,8 @@ export const AdminManagement: React.FC = () => {
             return 0;
         }
 
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
         return 0;
       });
     }
@@ -162,28 +210,28 @@ export const AdminManagement: React.FC = () => {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
     // Reset to first page when sorting changes
     setCurrentPage(1);
   };
 
-  const { activeCount, inactiveCount } = useMemo(() => {
-    return allAdmins.reduce(
-      (counts, admin) => {
-        if (admin.status === 'Active') {
-          counts.activeCount += 1;
-        } else {
-          counts.inactiveCount += 1;
-        }
-        return counts;
-      },
-      { activeCount: 0, inactiveCount: 0 }
-    );
-  }, [allAdmins]);
+  const handleItemsPerPageChange = (value: string) => {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isNaN(parsed)) {
+      setItemsPerPage(parsed);
+      setCurrentPage(1);
+    }
+  };
+
+  const totalAdmins = filteredAndSortedAdmins.length;
+  const adminPageStart =
+    totalAdmins === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const adminPageEnd =
+    totalAdmins === 0 ? 0 : Math.min(currentPage * itemsPerPage, totalAdmins);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -237,11 +285,13 @@ export const AdminManagement: React.FC = () => {
         email: editingAdmin.email,
         mobile: editingAdmin.mobile,
       });
-      toast.success('Admin updated successfully');
+      toast.success("Admin updated successfully");
       closeEditDialog();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to update admin. Please try again.';
+        error instanceof Error
+          ? error.message
+          : "Failed to update admin. Please try again.";
       toast.error(message);
     } finally {
       setIsSavingEdit(false);
@@ -252,10 +302,14 @@ export const AdminManagement: React.FC = () => {
     try {
       setPendingAdminId(admin.id);
       const updated = await toggleSocietyAdminStatus(admin.societyId, admin.id);
-      toast.success(`Admin ${updated.status === 'Active' ? 'activated' : 'deactivated'}`);
+      toast.success(
+        `Admin ${updated.status === "Active" ? "activated" : "deactivated"}`
+      );
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to update admin status. Please try again.';
+        error instanceof Error
+          ? error.message
+          : "Failed to update admin status. Please try again.";
       toast.error(message);
     } finally {
       setPendingAdminId(null);
@@ -263,7 +317,9 @@ export const AdminManagement: React.FC = () => {
   };
 
   const handleDelete = async (admin: SocietyAdmin) => {
-    const confirmed = confirm(`Are you sure you want to remove ${admin.name} as an admin?`);
+    const confirmed = confirm(
+      `Are you sure you want to remove ${admin.name} as an admin?`
+    );
     if (!confirmed) {
       return;
     }
@@ -271,10 +327,12 @@ export const AdminManagement: React.FC = () => {
     try {
       setPendingAdminId(admin.id);
       await deleteSocietyAdmin(admin.societyId, admin.id);
-      toast.success('Admin removed successfully');
+      toast.success("Admin removed successfully");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to remove admin. Please try again.';
+        error instanceof Error
+          ? error.message
+          : "Failed to remove admin. Please try again.";
       toast.error(message);
     } finally {
       setPendingAdminId(null);
@@ -284,13 +342,16 @@ export const AdminManagement: React.FC = () => {
   const handleResetPassword = async (admin: SocietyAdmin) => {
     try {
       setPendingAdminId(admin.id);
-      const message = await sendSocietyAdminPasswordReset(admin.societyId, admin.id);
+      const message = await sendSocietyAdminPasswordReset(
+        admin.societyId,
+        admin.id
+      );
       toast.success(message || `Password reset link sent to ${admin.email}`);
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to send password reset email. Please try again.';
+          : "Failed to send password reset email. Please try again.";
       toast.error(message);
     } finally {
       setPendingAdminId(null);
@@ -314,14 +375,21 @@ export const AdminManagement: React.FC = () => {
   };
 
   const handleAddAdmin = async () => {
-    if (!newAdmin.name || !newAdmin.email || !newAdmin.mobile || !newAdmin.societyId) {
-      toast.error('Please fill in all fields');
+    if (
+      !newAdmin.name ||
+      !newAdmin.email ||
+      !newAdmin.mobile ||
+      !newAdmin.societyId
+    ) {
+      toast.error("Please fill in all fields");
       return;
     }
 
-    const society = societies.find((candidate) => candidate.id === newAdmin.societyId);
+    const society = societies.find(
+      (candidate) => candidate.id === newAdmin.societyId
+    );
     if (!society) {
-      toast.error('Please select a valid society');
+      toast.error("Please select a valid society");
       return;
     }
 
@@ -338,7 +406,9 @@ export const AdminManagement: React.FC = () => {
       handleAddDialogClose();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to add admin. Please try again.';
+        error instanceof Error
+          ? error.message
+          : "Failed to add admin. Please try again.";
       toast.error(message);
     } finally {
       setIsAddingAdmin(false);
@@ -353,6 +423,11 @@ export const AdminManagement: React.FC = () => {
         onSearchChange={handleSearchChange}
         statusFilter={statusFilter}
         onStatusFilterChange={handleStatusFilterChange}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={handleItemsPerPageChange}
+        adminPageStart={adminPageStart}
+        adminPageEnd={adminPageEnd}
+        totalAdmins={totalAdmins}
       />
 
       <AdminDesktopTable
@@ -378,42 +453,33 @@ export const AdminManagement: React.FC = () => {
         pendingAdminId={pendingAdminId}
       />
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-2 flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </Button>
           <div className="text-sm text-gray-600">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedAdmins.length)} of {filteredAndSortedAdmins.length} admins
+            Page {currentPage} of {totalPages}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <div className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+            }
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       )}
-
-      <AdminSummary
-        filteredCount={filteredAndSortedAdmins.length}
-        totalCount={allAdmins.length}
-        activeCount={activeCount}
-        inactiveCount={inactiveCount}
-      />
 
       <EditAdminDialog
         isOpen={isEditDialogOpen}
