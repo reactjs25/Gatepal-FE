@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Mail, Phone, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -26,7 +26,11 @@ export const Signup: React.FC = () => {
     confirmPassword?: string;
   }>({});
 
-  // Validate full name (alphabet and space only, max 50 chars)
+  useEffect(() => {
+    document.title = 'Create Super Admin - GatePal';
+  }, []);
+
+  
   const validateFullName = (value: string): string | undefined => {
     if (!value.trim()) {
       return 'Full name is required';
@@ -40,7 +44,7 @@ export const Signup: React.FC = () => {
     return undefined;
   };
 
-  // Validate email
+
   const validateEmail = (value: string): string | undefined => {
     if (!value.trim()) {
       return 'Email address is required';
@@ -52,7 +56,7 @@ export const Signup: React.FC = () => {
     return undefined;
   };
 
-  // Validate phone number (numeric only, exactly 10 digits)
+  
   const validatePhoneNumber = (value: string): string | undefined => {
     if (!value.trim()) {
       return 'Phone number is required';
@@ -66,7 +70,7 @@ export const Signup: React.FC = () => {
     return undefined;
   };
 
-  // Validate password (min 8, max 128 chars)
+ 
   const validatePassword = (value: string): string | undefined => {
     if (!value.trim()) {
       return 'Password is required';
@@ -80,7 +84,7 @@ export const Signup: React.FC = () => {
     return undefined;
   };
 
-  // Validate confirm password
+  
   const validateConfirmPassword = (value: string, passwordValue: string): string | undefined => {
     if (!value.trim()) {
       return 'Confirm password is required';
@@ -94,7 +98,7 @@ export const Signup: React.FC = () => {
     return undefined;
   };
 
-  // Handle full name change with validation
+
   const handleFullNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setFullName(value);
@@ -102,7 +106,7 @@ export const Signup: React.FC = () => {
     setFieldErrors((prev) => ({ ...prev, fullName: error }));
   };
 
-  // Handle email change with validation
+
   const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setEmail(value);

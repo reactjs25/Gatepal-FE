@@ -41,8 +41,10 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
   onSubmit,
   isSubmitting,
 }) => {
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
   const [emailError, setEmailError] = useState<string | undefined>(undefined);
   const [mobileError, setMobileError] = useState<string | undefined>(undefined);
+  const [societyError, setSocietyError] = useState<string | undefined>(undefined);
 
   // Filter out inactive societies
   const activeSocieties = societies.filter((s) => s.status === 'Active');
@@ -50,10 +52,25 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
   // Clear form and errors when dialog closes
   useEffect(() => {
     if (!isOpen) {
+      setNameError(undefined);
       setEmailError(undefined);
       setMobileError(undefined);
+      setSocietyError(undefined);
     }
   }, [isOpen]);
+
+  const validateName = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return 'Name is required';
+    }
+    if (value.trim().length > 50) {
+      return 'Name must be 50 characters or less';
+    }
+    if (!/^[A-Za-z\s]+$/.test(value.trim())) {
+      return 'Name can only contain letters and spaces';
+    }
+    return undefined;
+  };
 
   const validateEmail = (value: string): string | undefined => {
     if (!value.trim()) {
@@ -107,12 +124,31 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
     setEmailError(error);
   };
 
+  const handleNameChange = (value: string) => {
+    onChange('name', value);
+    const error = validateName(value);
+    setNameError(error);
+  };
+
+  const validateSociety = (value: string): string | undefined => {
+    if (!value) {
+      return 'Society selection is required';
+    }
+    return undefined;
+  };
+
   const handleMobileChange = (value: string) => {
     // Only allow numeric characters and limit to 10 digits
     const numericValue = value.replace(/\D/g, '').slice(0, 10);
     onChange('mobile', numericValue);
     const error = validateMobile(numericValue);
     setMobileError(error);
+  };
+
+  const handleSocietyChange = (value: string) => {
+    onChange('societyId', value);
+    const error = validateSociety(value);
+    setSocietyError(error);
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -122,12 +158,16 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
   };
 
   const handleSubmit = () => {
+    const nameErr = validateName(form.name);
     const emailErr = validateEmail(form.email);
     const mobileErr = validateMobile(form.mobile);
+    const societyErr = validateSociety(form.societyId);
     
-    if (emailErr || mobileErr) {
+    if (nameErr || emailErr || mobileErr || societyErr) {
+      setNameError(nameErr);
       setEmailError(emailErr);
       setMobileError(mobileErr);
+      setSocietyError(societyErr);
       return;
     }
     
@@ -149,9 +189,10 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
             <Input
               id="new-name"
               value={form.name}
-              onChange={(event) => onChange('name', event.target.value)}
+              onChange={(event) => handleNameChange(event.target.value)}
               placeholder="Enter your name"
             />
+            {nameError && <p className="text-sm validation-message">{nameError}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="new-email" data-required>Email</Label>
@@ -183,7 +224,7 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
             <Label htmlFor="new-society" data-required>Society</Label>
             <Select
               value={form.societyId}
-              onValueChange={(value) => onChange('societyId', value)}
+              onValueChange={handleSocietyChange}
             >
               <SelectTrigger id="new-society">
                 <SelectValue placeholder="Select a society" />
@@ -196,6 +237,9 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
+            {societyError && (
+              <p className="text-sm validation-message">{societyError}</p>
+            )}
           </div>
         </div>
         <DialogFooter>
