@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building2, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Building2, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,8 +13,8 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword] = useState(false);
   const [emailError, setEmailError] = useState<string | undefined>(undefined);
+  const [passwordError, setPasswordError] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -35,6 +35,16 @@ export const Login: React.FC = () => {
     return undefined;
   };
 
+  const validatePassword = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return 'Password is required';
+    }
+    if (value.trim().length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    return undefined;
+  };
+
   // Handle email change with validation
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -43,14 +53,23 @@ export const Login: React.FC = () => {
     setEmailError(error);
   };
 
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    const error = validatePassword(value);
+    setPasswordError(error);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     // Validate email before submission
     const emailValidationError = validateEmail(email);
-    if (emailValidationError) {
-      setEmailError(emailValidationError);
+    const passwordValidationError = validatePassword(password);
+    setEmailError(emailValidationError);
+    setPasswordError(passwordValidationError);
+    if (emailValidationError || passwordValidationError) {
       return;
     }
 
@@ -95,7 +114,9 @@ export const Login: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" data-required>
+                Email Address
+              </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
@@ -109,23 +130,28 @@ export const Login: React.FC = () => {
                 />
               </div>
               {emailError && (
-                <p className="text-sm text-red-500">{emailError}</p>
+                <p className="text-sm validation-message">{emailError}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" data-required>
+                Password
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   className="pl-10 pr-12"
                   required
                 />
               </div>
+              {passwordError && (
+                <p className="text-sm validation-message">{passwordError}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-end">

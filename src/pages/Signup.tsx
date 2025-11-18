@@ -203,8 +203,8 @@ export const Signup: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="fullName">
-                Full Name <span className="text-red-500">*</span>
+              <Label htmlFor="fullName" data-required>
+                Full Name
               </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -219,13 +219,13 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.fullName && (
-                <p className="text-sm text-red-500">{fieldErrors.fullName}</p>
+                <p className="text-sm validation-message">{fieldErrors.fullName}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">
-                Email Address <span className="text-red-500">*</span>
+              <Label htmlFor="email" data-required>
+                Email Address
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -240,13 +240,13 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.email && (
-                <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                <p className="text-sm validation-message">{fieldErrors.email}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">
-                Phone Number <span className="text-red-500">*</span>
+              <Label htmlFor="phoneNumber" data-required>
+                Phone Number
               </Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -262,13 +262,13 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.phoneNumber && (
-                <p className="text-sm text-red-500">{fieldErrors.phoneNumber}</p>
+                <p className="text-sm validation-message">{fieldErrors.phoneNumber}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">
-                Password <span className="text-red-500">*</span>
+              <Label htmlFor="password" data-required>
+                Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -285,13 +285,13 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.password && (
-                <p className="text-sm text-red-500">{fieldErrors.password}</p>
+                <p className="text-sm validation-message">{fieldErrors.password}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">
-                Confirm Password <span className="text-red-500">*</span>
+              <Label htmlFor="confirmPassword" data-required>
+                Confirm Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -308,7 +308,7 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.confirmPassword && (
-                <p className="text-sm text-red-500">{fieldErrors.confirmPassword}</p>
+                <p className="text-sm validation-message">{fieldErrors.confirmPassword}</p>
               )}
             </div>
 

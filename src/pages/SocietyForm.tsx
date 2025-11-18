@@ -838,8 +838,8 @@ export const SocietyForm: React.FC = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="societyName">
-                      Society Name <span className="text-red-500">*</span>
+                    <Label htmlFor="societyName" data-required>
+                      Society Name
                     </Label>
                     <Input
                       id="societyName"
@@ -851,7 +851,7 @@ export const SocietyForm: React.FC = () => {
                       required
                     />
                     {errors['basic.societyName'] && (
-                      <p className="text-sm text-red-600">{errors['basic.societyName']}</p>
+                      <p className="text-sm validation-message">{errors['basic.societyName']}</p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -861,8 +861,8 @@ export const SocietyForm: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">
-                    Address <span className="text-red-500">*</span>
+                  <Label htmlFor="address" data-required>
+                    Address
                   </Label>
                   <Textarea
                     id="address"
@@ -873,14 +873,14 @@ export const SocietyForm: React.FC = () => {
                     required
                   />
                   {errors['basic.address'] && (
-                    <p className="text-sm text-red-600">{errors['basic.address']}</p>
+                    <p className="text-sm validation-message">{errors['basic.address']}</p>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">
-                      City <span className="text-red-500">*</span>
+                    <Label htmlFor="city" data-required>
+                      City
                     </Label>
                     <Input
                       id="city"
@@ -890,12 +890,12 @@ export const SocietyForm: React.FC = () => {
                       required
                     />
                     {errors['basic.city'] && (
-                      <p className="text-sm text-red-600">{errors['basic.city']}</p>
+                      <p className="text-sm validation-message">{errors['basic.city']}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="country">
-                      Country <span className="text-red-500">*</span>
+                    <Label htmlFor="country" data-required>
+                      Country
                     </Label>
                     <Select
                       value={formData.country}
@@ -919,7 +919,7 @@ export const SocietyForm: React.FC = () => {
                       </SelectContent>
                     </Select>
                     {errors['basic.country'] && (
-                      <p className="text-sm text-red-600">{errors['basic.country']}</p>
+                      <p className="text-sm validation-message">{errors['basic.country']}</p>
                     )}
                   </div>
                 </div>
@@ -949,7 +949,7 @@ export const SocietyForm: React.FC = () => {
                       )}
                     </Button>
                   </div>
-                  {locationError && <p className="text-sm text-red-600">{locationError}</p>}
+                  {locationError && <p className="text-sm validation-message">{locationError}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -967,7 +967,7 @@ export const SocietyForm: React.FC = () => {
                       placeholder="19.0760"
                     />
                     {errors['basic.latitude'] && (
-                      <p className="text-sm text-red-600">{errors['basic.latitude']}</p>
+                      <p className="text-sm validation-message">{errors['basic.latitude']}</p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -986,15 +986,15 @@ export const SocietyForm: React.FC = () => {
                       placeholder="72.8777"
                     />
                     {errors['basic.longitude'] && (
-                      <p className="text-sm text-red-600">{errors['basic.longitude']}</p>
+                      <p className="text-sm validation-message">{errors['basic.longitude']}</p>
                     )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="status">
-                      Status <span className="text-red-500">*</span>
+                    <Label htmlFor="status" data-required>
+                      Status
                     </Label>
                     <Select
                       value={formData.status}
@@ -1010,12 +1010,12 @@ export const SocietyForm: React.FC = () => {
                       </SelectContent>
                     </Select>
                     {errors['basic.status'] && (
-                      <p className="text-sm text-red-600">{errors['basic.status']}</p>
+                      <p className="text-sm validation-message">{errors['basic.status']}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maintenanceDueDate">
-                      Maintenance Due Date <span className="text-red-500">*</span>
+                    <Label htmlFor="maintenanceDueDate" data-required>
+                      Maintenance Due Date
                     </Label>
                     <Select
                       value={formData.maintenanceDueDate}
@@ -1035,7 +1035,7 @@ export const SocietyForm: React.FC = () => {
                       </SelectContent>
                     </Select>
                     {errors['basic.maintenanceDueDate'] && (
-                      <p className="text-sm text-red-600">
+                      <p className="text-sm validation-message">
                         {errors['basic.maintenanceDueDate']}
                       </p>
                     )}
@@ -1069,7 +1069,7 @@ export const SocietyForm: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {errors['structure.general'] && (
-                  <p className="text-sm text-red-600">{errors['structure.general']}</p>
+                  <p className="text-sm validation-message">{errors['structure.general']}</p>
                 )}
                 {wings.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">
@@ -1083,8 +1083,8 @@ export const SocietyForm: React.FC = () => {
                         <div className="flex items-start gap-4">
                           <div className="flex-1 grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>
-                                Wing Name <span className="text-red-500">*</span>
+                              <Label data-required>
+                                Wing Name
                               </Label>
                               <Input
                                 value={wing.name}
@@ -1093,14 +1093,14 @@ export const SocietyForm: React.FC = () => {
                                 required
                               />
                               {errors[`structure.wings.${wing.id}.name`] && (
-                                <p className="text-sm text-red-600">
+                                <p className="text-sm validation-message">
                                   {errors[`structure.wings.${wing.id}.name`]}
                                 </p>
                               )}
                             </div>
                             <div className="space-y-2">
-                              <Label>
-                                Total Units <span className="text-red-500">*</span>
+                              <Label data-required>
+                                Total Units
                               </Label>
                               <Input
                                 type="number"
@@ -1112,7 +1112,7 @@ export const SocietyForm: React.FC = () => {
                                 required
                               />
                               {errors[`structure.wings.${wing.id}.totalUnits`] && (
-                                <p className="text-sm text-red-600">
+                                <p className="text-sm validation-message">
                                   {errors[`structure.wings.${wing.id}.totalUnits`]}
                                 </p>
                               )}
@@ -1156,9 +1156,8 @@ export const SocietyForm: React.FC = () => {
                                 <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto">
                                   {wing.units.map((unit, unitIndex) => (
                                     <div key={unit.id} className="space-y-1">
-                                      <Label className="text-xs">
-                                        Unit {unitIndex + 1}{' '}
-                                        <span className="text-red-500">*</span>
+                                      <Label className="text-xs" data-required>
+                                        Unit {unitIndex + 1}
                                       </Label>
                                       <Input
                                         value={unit.number}
@@ -1170,7 +1169,7 @@ export const SocietyForm: React.FC = () => {
                                       {errors[
                                         `structure.wings.${wing.id}.units.${unit.id}`
                                       ] && (
-                                        <p className="text-xs text-red-600">
+                                        <p className="text-xs validation-message">
                                           {
                                             errors[
                                               `structure.wings.${wing.id}.units.${unit.id}`
@@ -1208,13 +1207,13 @@ export const SocietyForm: React.FC = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {errors['gates.entry.general'] && (
-                    <p className="text-sm text-red-600">{errors['gates.entry.general']}</p>
+                    <p className="text-sm validation-message">{errors['gates.entry.general']}</p>
                   )}
                   {entryGates.map((gate, index) => (
                     <div key={gate.id} className="flex items-start gap-2">
                       <div className="flex-1 space-y-1">
-                        <Label>
-                          Entry Gate Name <span className="text-red-500">*</span>
+                        <Label data-required>
+                          Entry Gate Name
                         </Label>
                         <Input
                           value={gate.name}
@@ -1223,7 +1222,7 @@ export const SocietyForm: React.FC = () => {
                           required
                         />
                         {errors[`gates.entry.${gate.id}.name`] && (
-                          <p className="text-sm text-red-600">
+                          <p className="text-sm validation-message">
                             {errors[`gates.entry.${gate.id}.name`]}
                           </p>
                         )}
@@ -1255,13 +1254,13 @@ export const SocietyForm: React.FC = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {errors['gates.exit.general'] && (
-                    <p className="text-sm text-red-600">{errors['gates.exit.general']}</p>
+                    <p className="text-sm validation-message">{errors['gates.exit.general']}</p>
                   )}
                   {exitGates.map((gate, index) => (
                     <div key={gate.id} className="flex items-start gap-2">
                       <div className="flex-1 space-y-1">
-                        <Label>
-                          Exit Gate Name <span className="text-red-500">*</span>
+                        <Label data-required>
+                          Exit Gate Name
                         </Label>
                         <Input
                           value={gate.name}
@@ -1270,7 +1269,7 @@ export const SocietyForm: React.FC = () => {
                           required
                         />
                         {errors[`gates.exit.${gate.id}.name`] && (
-                          <p className="text-sm text-red-600">
+                          <p className="text-sm validation-message">
                             {errors[`gates.exit.${gate.id}.name`]}
                           </p>
                         )}
@@ -1306,7 +1305,7 @@ export const SocietyForm: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {errors['admins.general'] && (
-                  <p className="text-sm text-red-600">{errors['admins.general']}</p>
+                  <p className="text-sm validation-message">{errors['admins.general']}</p>
                 )}
                 {admins.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">
@@ -1318,8 +1317,8 @@ export const SocietyForm: React.FC = () => {
                       <div className="flex items-start gap-4">
                         <div className="flex-1 grid grid-cols-3 gap-4">
                           <div className="space-y-2">
-                              <Label>
-                                Name <span className="text-red-500">*</span>
+                              <Label data-required>
+                                Name
                               </Label>
                             <Input
                               value={admin.name}
@@ -1328,14 +1327,14 @@ export const SocietyForm: React.FC = () => {
                                 required
                             />
                               {errors[`admins.${admin.id}.name`] && (
-                                <p className="text-sm text-red-600">
+                                <p className="text-sm validation-message">
                                   {errors[`admins.${admin.id}.name`]}
                                 </p>
                               )}
                           </div>
                           <div className="space-y-2">
-                              <Label>
-                                Phone <span className="text-red-500">*</span>
+                              <Label data-required>
+                                Phone
                               </Label>
                             <Input
                               value={admin.mobile}
@@ -1345,14 +1344,14 @@ export const SocietyForm: React.FC = () => {
                                 maxLength={10}
                             />
                               {errors[`admins.${admin.id}.mobile`] && (
-                                <p className="text-sm text-red-600">
+                                <p className="text-sm validation-message">
                                   {errors[`admins.${admin.id}.mobile`]}
                                 </p>
                               )}
                           </div>
                           <div className="space-y-2">
-                              <Label>
-                                Email <span className="text-red-500">*</span>
+                              <Label data-required>
+                                Email
                               </Label>
                             <Input
                               type="email"
@@ -1362,7 +1361,7 @@ export const SocietyForm: React.FC = () => {
                                 required
                             />
                               {errors[`admins.${admin.id}.email`] && (
-                                <p className="text-sm text-red-600">
+                                <p className="text-sm validation-message">
                                   {errors[`admins.${admin.id}.email`]}
                                 </p>
                               )}
@@ -1394,8 +1393,8 @@ export const SocietyForm: React.FC = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="startDate">
-                      Engagement Start Date <span className="text-red-500">*</span>
+                    <Label htmlFor="startDate" data-required>
+                      Engagement Start Date
                     </Label>
                     <Input
                       id="startDate"
@@ -1411,14 +1410,14 @@ export const SocietyForm: React.FC = () => {
                       required
                     />
                     {errors['engagement.engagementStartDate'] && (
-                      <p className="text-sm text-red-600">
+                      <p className="text-sm validation-message">
                         {errors['engagement.engagementStartDate']}
                       </p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="endDate">
-                      Engagement End Date <span className="text-red-500">*</span>
+                    <Label htmlFor="endDate" data-required>
+                      Engagement End Date
                     </Label>
                     <Input
                       id="endDate"
@@ -1434,7 +1433,7 @@ export const SocietyForm: React.FC = () => {
                       required
                     />
                     {errors['engagement.engagementEndDate'] && (
-                      <p className="text-sm text-red-600">
+                      <p className="text-sm validation-message">
                         {errors['engagement.engagementEndDate']}
                       </p>
                     )}
@@ -1443,8 +1442,8 @@ export const SocietyForm: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="baseRate">
-                      Base Rate (Excl. GST) <span className="text-red-500">*</span>
+                    <Label htmlFor="baseRate" data-required>
+                      Base Rate (Excl. GST)
                     </Label>
                     <Input
                       id="baseRate"
@@ -1455,7 +1454,7 @@ export const SocietyForm: React.FC = () => {
                       required
                     />
                     {errors['engagement.baseRate'] && (
-                      <p className="text-sm text-red-600">{errors['engagement.baseRate']}</p>
+                      <p className="text-sm validation-message">{errors['engagement.baseRate']}</p>
                     )}
                   </div>
                   <div className="space-y-2">

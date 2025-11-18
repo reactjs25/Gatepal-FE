@@ -104,8 +104,8 @@ export const ForgotPassword: React.FC = () => {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">
-                  Email Address <span className="text-red-500">*</span>
+                <Label htmlFor="email" data-required>
+                  Email Address
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -120,7 +120,7 @@ export const ForgotPassword: React.FC = () => {
                   />
                 </div>
                 {emailError && (
-                  <p className="text-sm text-red-500">{emailError}</p>
+                  <p className="text-sm validation-message">{emailError}</p>
                 )}
               </div>
 

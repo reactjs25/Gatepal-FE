@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, MoreVertical, Edit, Power, Trash2, Key, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Users, MoreVertical, Edit, Power, Trash2, Key, ArrowUpDown } from 'lucide-react';
 import { SocietyAdmin } from '../../types';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -49,17 +49,6 @@ export const AdminDesktopTable: React.FC<AdminDesktopTableProps> = ({
 }) => {
   const isEmpty = admins.length === 0;
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="ml-2 h-4 w-4 text-gray-400" />;
-    }
-    return sortDirection === 'asc' ? (
-      <ArrowUp className="ml-2 h-4 w-4" />
-    ) : (
-      <ArrowDown className="ml-2 h-4 w-4" />
-    );
-  };
-
   return (
     <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-x-auto">
       <Table className="min-w-[800px]">
@@ -68,37 +57,37 @@ export const AdminDesktopTable: React.FC<AdminDesktopTableProps> = ({
             <TableHead>
               <Button variant="ghost" size="sm" onClick={() => onSort('name')} className="h-8 px-2 -ml-2">
                 Admin Name
-                <SortIcon field="name" />
+                {sortField === 'name' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
               <Button variant="ghost" size="sm" onClick={() => onSort('email')} className="h-8 px-2 -ml-2">
                 Email
-                <SortIcon field="email" />
+                {sortField === 'email' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
               <Button variant="ghost" size="sm" onClick={() => onSort('mobile')} className="h-8 px-2 -ml-2">
                 Mobile
-                <SortIcon field="mobile" />
+                {sortField === 'mobile' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
               <Button variant="ghost" size="sm" onClick={() => onSort('societyName')} className="h-8 px-2 -ml-2">
                 Society
-                <SortIcon field="societyName" />
+                {sortField === 'societyName' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
               <Button variant="ghost" size="sm" onClick={() => onSort('status')} className="h-8 px-2 -ml-2">
                 Status
-                <SortIcon field="status" />
+                {sortField === 'status' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead>
               <Button variant="ghost" size="sm" onClick={() => onSort('createdAt')} className="h-8 px-2 -ml-2">
                 Added On
-                <SortIcon field="createdAt" />
+                {sortField === 'createdAt' && <ArrowUpDown className="ml-2 h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead className="text-right">Actions</TableHead>

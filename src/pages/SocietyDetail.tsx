@@ -80,7 +80,7 @@ export const SocietyDetail: React.FC = () => {
 
     return (
       <div className="p-8">
-        <p className={loadError ? 'text-red-600' : 'text-gray-600'}>{message}</p>
+        <p className={loadError ? 'validation-message' : 'text-gray-600'}>{message}</p>
       </div>
     );
   }

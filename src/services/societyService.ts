@@ -75,12 +75,18 @@ const formatDateInput = (value?: string | Date): string => {
 };
 
 const mapStatus = (status?: string): Society['status'] => {
-  if (status === 'Inactive') {
+  const normalized = status?.toLowerCase();
+
+  if (normalized === 'inactive') {
     return 'Inactive';
   }
 
-  if (status === 'Trial') {
+  if (normalized === 'trial') {
     return 'Trial';
+  }
+
+  if (normalized === 'active') {
+    return 'Active';
   }
 
   return 'Active';
@@ -182,7 +188,7 @@ const buildSocietyPayload = (society: Society) => ({
   country: society.country ?? '',
   latitude: society.latitude ?? 0,
   longitude: society.longitude ?? 0,
-  status: society.status === 'Inactive' ? 'Inactive' : 'Active',
+  status: society.status,
   maintenanceDueDate: society.maintenanceDueDate ?? 1,
   notes: society.notes,
   structure: society.wings.map((wing) => ({

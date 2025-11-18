@@ -187,3 +187,21 @@
 html {
   font-size: var(--font-size);
 }
+
+@layer components {
+  [data-required] {
+    gap: 0;
+  }
+
+  [data-required]::after {
+    content: "*";
+    color: #dc2626;
+    display: inline-block;
+    margin-left: 0;
+  }
+
+  [data-slot="form-message"],
+  .validation-message {
+    color: #dc2626;
+  }
+}
