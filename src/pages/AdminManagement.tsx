@@ -215,7 +215,7 @@ export const AdminManagement: React.FC = () => {
       setSortField(field);
       setSortDirection("asc");
     }
-    // Reset to first page when sorting changes
+ 
     setCurrentPage(1);
   };
 

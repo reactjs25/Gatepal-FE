@@ -49,6 +49,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { CharacterLimitHint } from "../components/CharacterLimitHint";
 
 type FormState = {
   societyName: string;
@@ -84,6 +85,7 @@ const MAX_TOTAL_UNITS = 999;
 const SOCIETY_NAME_MAX_LENGTH = 255;
 const ADDRESS_MAX_LENGTH = 1000;
 const NOTES_MAX_LENGTH = 5000;
+const ADMIN_MOBILE_MAX_LENGTH = 10;
 
 const sanitizePrintableAscii = (value: string) =>
   (value ?? "").replace(/[^\u0020-\u007E]/g, "");
@@ -1198,6 +1200,10 @@ export const SocietyForm: React.FC = () => {
                           required
                           maxLength={SOCIETY_NAME_MAX_LENGTH}
                         />
+                        <CharacterLimitHint
+                          currentLength={formData.societyName.length}
+                          maxLength={SOCIETY_NAME_MAX_LENGTH}
+                        />
                         {errors["basic.societyName"] && (
                           <p className="text-sm validation-message">
                             {errors["basic.societyName"]}
@@ -1231,6 +1237,10 @@ export const SocietyForm: React.FC = () => {
                         }
                         rows={3}
                         required
+                        maxLength={ADDRESS_MAX_LENGTH}
+                      />
+                      <CharacterLimitHint
+                        currentLength={formData.address.length}
                         maxLength={ADDRESS_MAX_LENGTH}
                       />
                       {errors["basic.address"] && (
@@ -1485,6 +1495,10 @@ export const SocietyForm: React.FC = () => {
                         rows={3}
                         maxLength={NOTES_MAX_LENGTH}
                       />
+                      <CharacterLimitHint
+                        currentLength={formData.notes.length}
+                        maxLength={NOTES_MAX_LENGTH}
+                      />
                       {errors["basic.notes"] && (
                         <p className="text-sm validation-message">
                           {errors["basic.notes"]}
@@ -1538,6 +1552,10 @@ export const SocietyForm: React.FC = () => {
                                     required
                                     maxLength={WING_NAME_MAX_LENGTH}
                                   />
+                                <CharacterLimitHint
+                                  currentLength={wing.name?.length ?? 0}
+                                  maxLength={WING_NAME_MAX_LENGTH}
+                                />
                                   {errors[
                                     `structure.wings.${wing.id}.name`
                                   ] && (
@@ -1646,6 +1664,13 @@ export const SocietyForm: React.FC = () => {
                                             required
                                             maxLength={UNIT_NAME_MAX_LENGTH}
                                           />
+                                          <CharacterLimitHint
+                                            currentLength={
+                                              unit.number?.length ?? 0
+                                            }
+                                            maxLength={UNIT_NAME_MAX_LENGTH}
+                                            className="text-[11px]"
+                                          />
                                           {errors[
                                             `structure.wings.${wing.id}.units.${unit.id}`
                                           ] && (
@@ -1708,6 +1733,10 @@ export const SocietyForm: React.FC = () => {
                               required
                               maxLength={GATE_NAME_MAX_LENGTH}
                             />
+                            <CharacterLimitHint
+                              currentLength={gate.name.length}
+                              maxLength={GATE_NAME_MAX_LENGTH}
+                            />
                             {errors[`gates.entry.${gate.id}.name`] && (
                               <p className="text-sm validation-message">
                                 {errors[`gates.entry.${gate.id}.name`]}
@@ -1760,6 +1789,10 @@ export const SocietyForm: React.FC = () => {
                               }
                               placeholder="e.g., Service Gate"
                               required
+                              maxLength={GATE_NAME_MAX_LENGTH}
+                            />
+                            <CharacterLimitHint
+                              currentLength={gate.name.length}
                               maxLength={GATE_NAME_MAX_LENGTH}
                             />
                             {errors[`gates.exit.${gate.id}.name`] && (
@@ -1826,6 +1859,10 @@ export const SocietyForm: React.FC = () => {
                                   required
                                   maxLength={ADMIN_NAME_MAX_LENGTH}
                                 />
+                                <CharacterLimitHint
+                                  currentLength={admin.name.length}
+                                  maxLength={ADMIN_NAME_MAX_LENGTH}
+                                />
                                 {errors[`admins.${admin.id}.name`] && (
                                   <p className="text-sm validation-message">
                                     {errors[`admins.${admin.id}.name`]}
@@ -1841,7 +1878,11 @@ export const SocietyForm: React.FC = () => {
                                   }
                                   placeholder="Enter your phone"
                                   required
-                                  maxLength={10}
+                                  maxLength={ADMIN_MOBILE_MAX_LENGTH}
+                                />
+                                <CharacterLimitHint
+                                  currentLength={admin.mobile.length}
+                                  maxLength={ADMIN_MOBILE_MAX_LENGTH}
                                 />
                                 {errors[`admins.${admin.id}.mobile`] && (
                                   <p className="text-sm validation-message">

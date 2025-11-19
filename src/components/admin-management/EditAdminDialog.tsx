@@ -1,6 +1,7 @@
 import React from 'react';
 import { SocietyAdmin } from '../../types';
 import { ADMIN_NAME_MAX_LENGTH } from '../../constants';
+import { CharacterLimitHint } from '../CharacterLimitHint';
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ export const EditAdminDialog: React.FC<EditAdminDialogProps> = ({
                 onChange={(event) => onChange('name', event.target.value.slice(0, ADMIN_NAME_MAX_LENGTH))}
                 maxLength={ADMIN_NAME_MAX_LENGTH}
               />
+              <CharacterLimitHint currentLength={admin.name.length} maxLength={ADMIN_NAME_MAX_LENGTH} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email</Label>

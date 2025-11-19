@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Society, SocietyAdmin } from '../../types';
 import { ADMIN_NAME_MAX_LENGTH } from '../../constants';
+import { CharacterLimitHint } from '../CharacterLimitHint';
 import {
   Dialog,
   DialogContent,
@@ -191,6 +192,10 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
               value={form.name}
               onChange={(event) => handleNameChange(event.target.value)}
               placeholder="Enter your name"
+              maxLength={ADMIN_NAME_MAX_LENGTH}
+            />
+            <CharacterLimitHint
+              currentLength={form.name.length}
               maxLength={ADMIN_NAME_MAX_LENGTH}
             />
             {nameError && <p className="text-sm validation-message">{nameError}</p>}

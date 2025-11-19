@@ -5,8 +5,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { CharacterLimitHint } from '../components/CharacterLimitHint';
 import { useAuth } from '../context/AuthContext';
 const logo = new URL('../assets/f327b419d75f4a4c0592f1b2bf0e3f99041c24be.png', import.meta.url).href;
+
+const FULL_NAME_MAX_LENGTH = 50;
 
 export const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -35,8 +38,8 @@ export const Signup: React.FC = () => {
     if (!value.trim()) {
       return 'Full name is required';
     }
-    if (value.length > 50) {
-      return 'Full name must be 50 characters or less';
+    if (value.length > FULL_NAME_MAX_LENGTH) {
+      return `Full name must be ${FULL_NAME_MAX_LENGTH} characters or less`;
     }
     if (!/^[a-zA-Z\s]+$/.test(value)) {
       return 'Full name can only contain letters and spaces';
@@ -219,9 +222,13 @@ export const Signup: React.FC = () => {
                   onChange={handleFullNameChange}
                   className="pl-10"
                   required
-                  maxLength={50}
+                  maxLength={FULL_NAME_MAX_LENGTH}
                 />
               </div>
+              <CharacterLimitHint
+                currentLength={fullName.length}
+                maxLength={FULL_NAME_MAX_LENGTH}
+              />
               {fieldErrors.fullName && (
                 <p className="text-sm validation-message">{fieldErrors.fullName}</p>
               )}
