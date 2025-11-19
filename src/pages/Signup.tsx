@@ -1,25 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Lock, Mail, Phone, User } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { CharacterLimitHint } from '../components/CharacterLimitHint';
-import { useAuth } from '../context/AuthContext';
-const logo = new URL('../assets/f327b419d75f4a4c0592f1b2bf0e3f99041c24be.png', import.meta.url).href;
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Lock, Mail, Phone, User } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { CharacterLimitHint } from "../components/CharacterLimitHint";
+import { useAuth } from "../context/AuthContext";
+const logo = new URL(
+  "../assets/f327b419d75f4a4c0592f1b2bf0e3f99041c24be.png",
+  import.meta.url
+).href;
 
-const FULL_NAME_MAX_LENGTH = 50;
+const FULL_NAME_MAX_LENGTH = 150;
 
 export const Signup: React.FC = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     fullName?: string;
@@ -30,85 +33,80 @@ export const Signup: React.FC = () => {
   }>({});
 
   useEffect(() => {
-    document.title = 'Create Super Admin - GatePal';
+    document.title = "Create Super Admin - GatePal";
   }, []);
 
-  
   const validateFullName = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Full name is required';
+      return "Full name is required";
     }
     if (value.length > FULL_NAME_MAX_LENGTH) {
       return `Full name must be ${FULL_NAME_MAX_LENGTH} characters or less`;
     }
-    if (!/^[a-zA-Z\s]+$/.test(value)) {
-      return 'Full name can only contain letters and spaces';
-    }
     return undefined;
   };
-
 
   const validateEmail = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Email address is required';
+      return "Email address is required";
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      return 'Please enter a valid email address';
+      return "Please enter a valid email address";
     }
     return undefined;
   };
 
-  
   const validatePhoneNumber = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Phone number is required';
+      return "Phone number is required";
     }
     if (!/^\d+$/.test(value)) {
-      return 'Phone number can only contain numbers';
+      return "Phone number can only contain numbers";
     }
     if (value.length !== 10) {
-      return 'Phone number must be exactly 10 digits';
+      return "Phone number must be exactly 10 digits";
     }
     return undefined;
   };
 
- 
   const validatePassword = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Password is required';
+      return "Password is required";
     }
     if (value.length < 8) {
-      return 'Password must be at least 8 characters';
+      return "Password must be at least 8 characters";
     }
     if (value.length > 128) {
-      return 'Password must be 128 characters or less';
+      return "Password must be 128 characters or less";
     }
     return undefined;
   };
 
-  
-  const validateConfirmPassword = (value: string, passwordValue: string): string | undefined => {
+  const validateConfirmPassword = (
+    value: string,
+    passwordValue: string
+  ): string | undefined => {
     if (!value.trim()) {
-      return 'Confirm password is required';
+      return "Confirm password is required";
     }
     if (value.length > 128) {
-      return 'Password must be 128 characters or less';
+      return "Password must be 128 characters or less";
     }
     if (value !== passwordValue) {
-      return 'Passwords do not match';
+      return "Passwords do not match";
     }
     return undefined;
   };
-
 
   const handleFullNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    setFullName(value);
-    const error = validateFullName(value);
+    // Allow any character but hard-cap to our defined max length
+    const limitedValue = value.slice(0, FULL_NAME_MAX_LENGTH);
+    setFullName(limitedValue);
+    const error = validateFullName(limitedValue);
     setFieldErrors((prev) => ({ ...prev, fullName: error }));
   };
-
 
   const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
@@ -118,8 +116,10 @@ export const Signup: React.FC = () => {
   };
 
   // Handle phone number change with validation (only allow numbers)
-  const handlePhoneNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.replace(/\D/g, ''); // Remove non-numeric characters
+  const handlePhoneNumberChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = event.target.value.replace(/\D/g, ""); // Remove non-numeric characters
     setPhoneNumber(value);
     const error = validatePhoneNumber(value);
     setFieldErrors((prev) => ({ ...prev, phoneNumber: error }));
@@ -139,7 +139,9 @@ export const Signup: React.FC = () => {
   };
 
   // Handle confirm password change with validation
-  const handleConfirmPasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleConfirmPasswordChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const value = event.target.value;
     setConfirmPassword(value);
     const error = validateConfirmPassword(value, password);
@@ -148,16 +150,25 @@ export const Signup: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError('');
+    setError("");
 
     // Validate all fields
     const fullNameError = validateFullName(fullName);
     const emailError = validateEmail(email);
     const phoneNumberError = validatePhoneNumber(phoneNumber);
     const passwordError = validatePassword(password);
-    const confirmPasswordError = validateConfirmPassword(confirmPassword, password);
+    const confirmPasswordError = validateConfirmPassword(
+      confirmPassword,
+      password
+    );
 
-    if (fullNameError || emailError || phoneNumberError || passwordError || confirmPasswordError) {
+    if (
+      fullNameError ||
+      emailError ||
+      phoneNumberError ||
+      passwordError ||
+      confirmPasswordError
+    ) {
       setFieldErrors({
         fullName: fullNameError,
         email: emailError,
@@ -178,13 +189,13 @@ export const Signup: React.FC = () => {
         password,
       });
       if (success) {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
-          : 'We were unable to submit your request. Please try again.';
+          : "We were unable to submit your request. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
@@ -230,7 +241,9 @@ export const Signup: React.FC = () => {
                 maxLength={FULL_NAME_MAX_LENGTH}
               />
               {fieldErrors.fullName && (
-                <p className="text-sm validation-message">{fieldErrors.fullName}</p>
+                <p className="text-sm validation-message">
+                  {fieldErrors.fullName}
+                </p>
               )}
             </div>
 
@@ -251,7 +264,9 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.email && (
-                <p className="text-sm validation-message">{fieldErrors.email}</p>
+                <p className="text-sm validation-message">
+                  {fieldErrors.email}
+                </p>
               )}
             </div>
 
@@ -273,7 +288,9 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.phoneNumber && (
-                <p className="text-sm validation-message">{fieldErrors.phoneNumber}</p>
+                <p className="text-sm validation-message">
+                  {fieldErrors.phoneNumber}
+                </p>
               )}
             </div>
 
@@ -296,7 +313,9 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.password && (
-                <p className="text-sm validation-message">{fieldErrors.password}</p>
+                <p className="text-sm validation-message">
+                  {fieldErrors.password}
+                </p>
               )}
             </div>
 
@@ -319,17 +338,22 @@ export const Signup: React.FC = () => {
                 />
               </div>
               {fieldErrors.confirmPassword && (
-                <p className="text-sm validation-message">{fieldErrors.confirmPassword}</p>
+                <p className="text-sm validation-message">
+                  {fieldErrors.confirmPassword}
+                </p>
               )}
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating your account...' : 'Create Account'}
+              {loading ? "Creating your account..." : "Create Account"}
             </Button>
 
             <p className="text-center text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium text-green-600 hover:text-green-700">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="font-medium text-green-600 hover:text-green-700"
+              >
                 Login
               </Link>
             </p>
@@ -345,4 +369,3 @@ export const Signup: React.FC = () => {
 };
 
 export default Signup;
-
