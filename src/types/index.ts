@@ -64,6 +64,12 @@ export interface Document {
   uploadedAt: string;
 }
 
+export interface CountryCityOption {
+  countryCode: string;
+  countryName: string;
+  cities: string[];
+}
+
 export interface User {
   id?: string;
   email: string;

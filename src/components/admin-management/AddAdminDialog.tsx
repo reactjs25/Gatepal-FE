@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Society, SocietyAdmin } from '../../types';
+import { ADMIN_NAME_MAX_LENGTH } from '../../constants';
 import {
   Dialog,
   DialogContent,
@@ -60,14 +61,12 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
   }, [isOpen]);
 
   const validateName = (value: string): string | undefined => {
-    if (!value.trim()) {
+    const trimmed = value.trim();
+    if (!trimmed) {
       return 'Name is required';
     }
-    if (value.trim().length > 50) {
-      return 'Name must be 50 characters or less';
-    }
-    if (!/^[A-Za-z\s]+$/.test(value.trim())) {
-      return 'Name can only contain letters and spaces';
+    if (trimmed.length > ADMIN_NAME_MAX_LENGTH) {
+      return `Name must be ${ADMIN_NAME_MAX_LENGTH} characters or less`;
     }
     return undefined;
   };
@@ -125,8 +124,9 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
   };
 
   const handleNameChange = (value: string) => {
-    onChange('name', value);
-    const error = validateName(value);
+    const limitedValue = value.slice(0, ADMIN_NAME_MAX_LENGTH);
+    onChange('name', limitedValue);
+    const error = validateName(limitedValue);
     setNameError(error);
   };
 
@@ -191,6 +191,7 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
               value={form.name}
               onChange={(event) => handleNameChange(event.target.value)}
               placeholder="Enter your name"
+              maxLength={ADMIN_NAME_MAX_LENGTH}
             />
             {nameError && <p className="text-sm validation-message">{nameError}</p>}
           </div>

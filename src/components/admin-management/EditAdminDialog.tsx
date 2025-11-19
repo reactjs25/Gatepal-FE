@@ -1,5 +1,6 @@
 import React from 'react';
 import { SocietyAdmin } from '../../types';
+import { ADMIN_NAME_MAX_LENGTH } from '../../constants';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +52,8 @@ export const EditAdminDialog: React.FC<EditAdminDialogProps> = ({
               <Input
                 id="edit-name"
                 value={admin.name}
-                onChange={(event) => onChange('name', event.target.value)}
+                onChange={(event) => onChange('name', event.target.value.slice(0, ADMIN_NAME_MAX_LENGTH))}
+                maxLength={ADMIN_NAME_MAX_LENGTH}
               />
             </div>
             <div className="space-y-2">

@@ -173,6 +173,54 @@ const parseOptionalNumber = (value: string | undefined, fallback?: number) => {
   return parsed;
 };
 
+const splitDelimitedValues = (value: string): string[] =>
+  value
+    .split(/[,;|]/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+
+type IndexedColumns<T extends string> = Record<number, Partial<Record<T, number>>>;
+
+const collectIndexedColumns = <T extends string>(
+  headers: string[],
+  prefix: string,
+  fieldMappings: Record<T, string[]>
+): IndexedColumns<T> => {
+  const groups: IndexedColumns<T> = {};
+
+  headers.forEach((header, index) => {
+    if (!header.startsWith(prefix)) {
+      return;
+    }
+
+    const suffix = header.slice(prefix.length);
+    const match = suffix.match(/^(\d+)([a-z0-9]+)$/);
+    if (!match) {
+      return;
+    }
+
+    const groupNumber = Number.parseInt(match[1], 10);
+    const fieldKeyRaw = match[2];
+    const normalizedField = (Object.entries(fieldMappings) as [T, string[]][]).find(([, variants]) =>
+      variants.includes(fieldKeyRaw)
+    )?.[0];
+
+    if (!normalizedField) {
+      return;
+    }
+
+    if (!groups[groupNumber]) {
+      groups[groupNumber] = {};
+    }
+
+    groups[groupNumber][normalizedField] = index;
+  });
+
+  return groups;
+};
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const SAMPLE_IMPORT_ROWS: (string | number | null)[][] = [
   [
     'Society Name',
@@ -181,49 +229,97 @@ const SAMPLE_IMPORT_ROWS: (string | number | null)[][] = [
     'City',
     'Country',
     'Status',
+    'Maintenance Due Date',
     'Engagement Start',
     'Engagement End',
-    'Maintenance Due Date',
     'Base Rate',
     'GST',
     'Rate Incl GST',
     'Latitude',
     'Longitude',
     'Notes',
+    'Wing 1 Name',
+    'Wing 1 Total Units',
+    'Wing 1 Units',
+    'Wing 2 Name',
+    'Wing 2 Total Units',
+    'Wing 2 Units',
+    'Entry Gate 1 Name',
+    'Entry Gate 2 Name',
+    'Exit Gate 1 Name',
+    'Exit Gate 2 Name',
+    'Admin 1 Name',
+    'Admin 1 Mobile',
+    'Admin 1 Email',
+    'Admin 2 Name',
+    'Admin 2 Mobile',
+    'Admin 2 Email',
   ],
   [
     'Sunshine Residency',
-    'SR-1001',
+    '',
     '123 Palm Street, Andheri East',
     'Mumbai',
     'India',
     'Active',
+    1,
     '2025-01-01',
     '2025-12-31',
-    1,
     5000,
     900,
     5900,
     '19.1197',
     '72.8468',
     'Primary society account',
+    'Tower A',
+    4,
+    'A101;A102;A201;A202',
+    'Tower B',
+    3,
+    'B101;B102;B201',
+    'Main Gate',
+    'Service Gate',
+    'North Exit',
+    'South Exit',
+    'Riya Sharma',
+    '9876543210',
+    'riya.sharma@example.com',
+    'Arjun Patel',
+    '9123456780',
+    'arjun.patel@example.com',
   ],
   [
     'Lakeside Towers',
-    'LT-2045',
+    '',
     '45 Lakeview Road, Kondapur',
     'Hyderabad',
     'India',
     'Trial',
+    5,
     '2025-02-15',
     '2025-11-30',
-    5,
     4200,
     756,
     4956,
     '17.4581',
     '78.3816',
     'Trial onboarding batch',
+    'Block 1',
+    2,
+    'L1-101;L1-102',
+    'Block 2',
+    2,
+    'L2-201;L2-202',
+    'Lake View Entry',
+    'Club House Entry',
+    'East Exit',
+    'West Exit',
+    'Anya Menon',
+    '9012345678',
+    'anya.menon@example.com',
+    'Karan Oberoi',
+    '9345678901',
+    'karan.oberoi@example.com',
   ],
 ];
 
@@ -487,16 +583,20 @@ export const SocietyList: React.FC = () => {
     const longitudeIndex = findHeaderIndex('longitude', 'lng', 'long');
     const notesIndex = findHeaderIndex('notes', 'remarks');
 
-    if (
-      nameIndex === -1 ||
-      pinIndex === -1 ||
-      addressIndex === -1 ||
-      startDateIndex === -1 ||
-      endDateIndex === -1 ||
-      baseRateIndex === -1
-    ) {
+    const missingColumns: string[] = [];
+    if (nameIndex === -1) missingColumns.push('Society Name');
+    if (addressIndex === -1) missingColumns.push('Address');
+    if (cityIndex === -1) missingColumns.push('City');
+    if (countryIndex === -1) missingColumns.push('Country');
+    if (statusIndex === -1) missingColumns.push('Status');
+    if (maintenanceIndex === -1) missingColumns.push('Maintenance Due Date');
+    if (startDateIndex === -1) missingColumns.push('Engagement Start');
+    if (endDateIndex === -1) missingColumns.push('Engagement End');
+    if (baseRateIndex === -1) missingColumns.push('Base Rate');
+
+    if (missingColumns.length > 0) {
       toast.error(
-        'CSV/XLSX must include Society Name, PIN, Address, Engagement Start, Engagement End, and Base Rate columns.'
+        `CSV/XLSX must include the following columns: ${missingColumns.join(', ')}.`
       );
       return false;
     }
@@ -515,30 +615,56 @@ export const SocietyList: React.FC = () => {
 
       const rowNumber = lineIndex + 1;
       const societyName = values[nameIndex] ?? '';
-      const societyPin = values[pinIndex] ?? '';
       const address = values[addressIndex] ?? '';
       const engagementStartValue = values[startDateIndex] ?? '';
       const engagementEndValue = values[endDateIndex] ?? '';
       const baseRateValue = values[baseRateIndex] ?? '';
+      const cityValue = cityIndex >= 0 ? values[cityIndex] ?? '' : '';
+      const countryValue = countryIndex >= 0 ? values[countryIndex] ?? '' : '';
+      const statusRaw = statusIndex >= 0 ? values[statusIndex] ?? '' : '';
+      const maintenanceDueDateRaw = maintenanceIndex >= 0 ? values[maintenanceIndex] ?? '' : '';
+      const societyPinValue = pinIndex >= 0 ? values[pinIndex] ?? '' : '';
 
-      if (
-        !societyName ||
-        !societyPin ||
-        !address ||
-        !engagementStartValue ||
-        !engagementEndValue ||
-        !baseRateValue
-      ) {
+      const missingFields = [
+        ['Society Name', societyName],
+        ['Address', address],
+        ['City', cityValue],
+        ['Country', countryValue],
+        ['Status', statusRaw],
+        ['Maintenance Due Date', maintenanceDueDateRaw],
+        ['Engagement Start', engagementStartValue],
+        ['Engagement End', engagementEndValue],
+        ['Base Rate', baseRateValue],
+      ]
+        .filter(([, value]) => !value)
+        .map(([label]) => label);
+
+      if (missingFields.length > 0) {
         skippedCount += 1;
-        errorDetails.push(`Row ${rowNumber}: Missing required fields.`);
+        errorDetails.push(
+          `Row ${rowNumber}: Missing required fields (${missingFields.join(', ')}).`
+        );
         continue;
       }
 
-      const existingSociety = societies.find(
-        (society) =>
-          society.societyPin.toLowerCase() === societyPin.toLowerCase() ||
-          society.societyName.toLowerCase() === societyName.toLowerCase()
-      );
+      const validStatusValues = ['active', 'inactive', 'trial'];
+      if (!validStatusValues.includes(statusRaw.toLowerCase())) {
+        skippedCount += 1;
+        errorDetails.push(
+          `Row ${rowNumber}: Status must be one of Active, Inactive, or Trial.`
+        );
+        continue;
+      }
+
+      const existingSociety = societies.find((society) => {
+        if (
+          societyPinValue &&
+          society.societyPin.toLowerCase() === societyPinValue.toLowerCase()
+        ) {
+          return true;
+        }
+        return society.societyName.toLowerCase() === societyName.toLowerCase();
+      });
       if (existingSociety) {
         skippedCount += 1;
         errorDetails.push(`Row ${rowNumber}: Society "${societyName}" already exists.`);
@@ -561,6 +687,19 @@ export const SocietyList: React.FC = () => {
         continue;
       }
 
+      const maintenanceDueDate = Number.parseInt(maintenanceDueDateRaw, 10);
+      if (
+        Number.isNaN(maintenanceDueDate) ||
+        maintenanceDueDate < 1 ||
+        maintenanceDueDate > 30
+      ) {
+        skippedCount += 1;
+        errorDetails.push(
+          `Row ${rowNumber}: Maintenance Due Date must be a number between 1 and 30.`
+        );
+        continue;
+      }
+
       const gstValue = parseOptionalNumber(
         gstIndex >= 0 ? values[gstIndex] : undefined,
         Number.parseFloat((baseRate * 0.18).toFixed(2))
@@ -576,24 +715,36 @@ export const SocietyList: React.FC = () => {
         rateInclGstValue !== undefined
           ? Number.parseFloat(rateInclGstValue.toFixed(2))
           : Number.parseFloat((baseRate + normalizedGst).toFixed(2));
-      const maintenanceDueDateValue =
-        parseOptionalNumber(maintenanceIndex >= 0 ? values[maintenanceIndex] : undefined) ?? 1;
-      const latitudeValue = parseOptionalNumber(
-        latitudeIndex >= 0 ? values[latitudeIndex] : undefined
-      );
-      const longitudeValue = parseOptionalNumber(
-        longitudeIndex >= 0 ? values[longitudeIndex] : undefined
-      );
+      const latitudeRaw = latitudeIndex >= 0 ? values[latitudeIndex] ?? '' : '';
+      const longitudeRaw = longitudeIndex >= 0 ? values[longitudeIndex] ?? '' : '';
+      const latitudeValue = latitudeRaw ? parseOptionalNumber(latitudeRaw) : undefined;
+      const longitudeValue = longitudeRaw ? parseOptionalNumber(longitudeRaw) : undefined;
+
+      if (
+        (latitudeRaw && latitudeValue === undefined) ||
+        (longitudeRaw && longitudeValue === undefined)
+      ) {
+        skippedCount += 1;
+        errorDetails.push(
+          `Row ${rowNumber}: Latitude and Longitude must be valid numbers when provided.`
+        );
+        continue;
+      }
 
       const statusValue =
-        statusIndex >= 0 ? normalizeStatus(values[statusIndex] ?? '') : ('Active' as const);
+        statusIndex >= 0 ? normalizeStatus(statusRaw) : ('Active' as const);
+
+      const placeholderSocietyPin =
+        societyPinValue.trim().length > 0
+          ? societyPinValue
+          : `AUTO-${Date.now()}-${lineIndex}`;
 
       const societyPayload: Society = {
         id: `soc${Date.now()}-${lineIndex}-${Math.random().toString(36).slice(2, 8)}`,
         societyName,
         address,
-        city: cityIndex >= 0 ? values[cityIndex] ?? '' : '',
-        country: countryIndex >= 0 ? values[countryIndex] ?? '' : '',
+        city: cityValue,
+        country: countryValue,
         latitude: latitudeValue ?? undefined,
         longitude: longitudeValue ?? undefined,
         totalWings: 0,
@@ -603,15 +754,12 @@ export const SocietyList: React.FC = () => {
         societyAdmins: [],
         engagementStartDate: engagementStartDate.toISOString(),
         engagementEndDate: engagementEndDate.toISOString(),
-        maintenanceDueDate:
-          Number.isFinite(maintenanceDueDateValue)
-            ? Math.min(Math.max(Math.round(maintenanceDueDateValue), 1), 30)
-            : 1,
+        maintenanceDueDate,
         baseRate,
         gst: normalizedGst,
         rateInclGst: normalizedRateIncl,
         status: statusValue,
-        societyPin,
+        societyPin: placeholderSocietyPin,
         notes: notesIndex >= 0 ? values[notesIndex] || undefined : undefined,
         createdBy: user?.name || 'Admin',
         lastUpdatedBy: user?.name || 'Admin',
@@ -630,15 +778,25 @@ export const SocietyList: React.FC = () => {
       }
     }
 
-    if (importedCount > 0) {
-      toast.success(`Imported ${importedCount} societ${importedCount === 1 ? 'y' : 'ies'} successfully.`);
-    }
-    if (skippedCount > 0) {
+    if (importedCount > 0 && skippedCount === 0) {
+      toast.success(
+        `Imported ${importedCount} societ${importedCount === 1 ? 'y' : 'ies'} successfully. Unique PINs were generated automatically.`
+      );
+    } else if (importedCount > 0 && skippedCount > 0) {
       const preview = errorDetails.slice(0, 3).join(' ');
       const more = errorDetails.length > 3 ? ' Additional errors omitted.' : '';
-      toast.error(`Skipped ${skippedCount} row${skippedCount === 1 ? '' : 's'} during import. ${preview}${more}`);
-    }
-    if (importedCount === 0 && skippedCount === 0) {
+      toast.warning(
+        `Import completed with partial success. Created ${importedCount} societ${
+          importedCount === 1 ? 'y' : 'ies'
+        }, but ${skippedCount} row${skippedCount === 1 ? '' : 's'} had issues. ${preview}${more}`
+      );
+    } else if (skippedCount > 0) {
+      const preview = errorDetails.slice(0, 3).join(' ');
+      const more = errorDetails.length > 3 ? ' Additional errors omitted.' : '';
+      toast.error(
+        `No societies were imported. ${skippedCount} row${skippedCount === 1 ? '' : 's'} had errors. ${preview}${more}`
+      );
+    } else {
       toast.error('No valid society entries found in the selected file.');
     }
 
@@ -761,6 +919,22 @@ export const SocietyList: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Required columns: <span className="font-medium">Society Name</span>,{' '}
+              <span className="font-medium">Address</span>, <span className="font-medium">City</span>,{' '}
+              <span className="font-medium">Country</span>, <span className="font-medium">Status</span>,{' '}
+              <span className="font-medium">Maintenance Due Date</span>,{' '}
+              <span className="font-medium">Engagement Start</span>,{' '}
+              <span className="font-medium">Engagement End</span>, <span className="font-medium">Base Rate</span>,{' '}
+              <span className="font-medium">Wing 1 Name</span>, <span className="font-medium">Wing 1 Total Units</span>,{' '}
+              <span className="font-medium">Wing 1 Units</span>, <span className="font-medium">Entry Gate 1 Name</span>,{' '}
+              <span className="font-medium">Exit Gate 1 Name</span>, and{' '}
+              <span className="font-medium">Admin 1 Name/Mobile/Email</span>. Duplicate these columns with higher
+              numbers (Wing 2, Admin 2, etc.) whenever you need to capture more data. Leave the{' '}
+              <span className="font-medium">Society PIN</span> column blank—the system will generate a unique PIN
+              automatically. Latitude and Longitude are optional; include them only if you have reliable coordinates.
+              For unit lists, separate values with commas, semicolons, or pipes (e.g. <code>A101;A102;A201</code>).
+            </p>
             <div className="flex flex items-center gap-x-2 gap-y-1 text-sm text-gray-700">
               <span className="font-medium text-gray-900">Excel:</span>
               <Button
