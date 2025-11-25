@@ -15,7 +15,7 @@ const extractErrorMessage = (error: unknown, fallback: string) => {
 
 export const fetchCountryCityOptions = async (): Promise<CountryCityOption[]> => {
   try {
-    const response = await apiClient.get('/system/locations/country-cities');
+    const response = await apiClient.get('/society/locations/country-cities');
     const payload = response.data?.data as CountryCityOption[] | undefined;
     if (!payload) {
       throw new Error('Locations data is missing in the server response.');
