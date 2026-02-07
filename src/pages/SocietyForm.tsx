@@ -481,7 +481,7 @@ export const SocietyForm: React.FC = () => {
       updatedWings[index].name = sanitizeWingName(value as string);
       clearError(`structure.wings.${updatedWings[index].id}.name`);
     } else if (field === "totalUnits") {
-      // Limit to 3 digits (max 999) to prevent page unresponsive
+      
       const inputValue = value as string;
       const numericValue = inputValue.replace(/\D/g, ""); // Remove non-numeric characters
       const count = Math.min(parseInt(numericValue, 10) || 0, MAX_TOTAL_UNITS); // Max 999
@@ -625,7 +625,7 @@ export const SocietyForm: React.FC = () => {
       };
       clearError(`admins.${updated[index].id}.name`);
     } else if (field === "mobile") {
-      // Only allow numeric characters and limit to 10 digits
+      
       const numericValue = value.replace(/\D/g, "").slice(0, 10);
       updated[index] = { ...updated[index], [field]: numericValue };
     } else {
@@ -810,7 +810,7 @@ export const SocietyForm: React.FC = () => {
         if (!admin.mobile.trim()) {
           tabErrors[`${adminKey}.mobile`] = "Phone number is required.";
         } else {
-          // Validate mobile: numeric only, exactly 10 digits
+          
           const mobileDigits = admin.mobile.replace(/\D/g, "");
           if (!/^\d+$/.test(mobileDigits)) {
             tabErrors[`${adminKey}.mobile`] =
@@ -1047,7 +1047,7 @@ export const SocietyForm: React.FC = () => {
       baseRate: baseRateValue,
       gst: gstValue,
       rateInclGst: rateInclGstValue,
-      status: formData.status as "Active" | "Inactive" | "Trial",
+      status: formData.status as "Active" | "Inactive" | "Trial" | "Suspended",
       societyPin: formData.societyPin,
       notes: notesValue || undefined,
       createdBy: user?.name || "Admin",
@@ -1174,7 +1174,7 @@ export const SocietyForm: React.FC = () => {
                 <TabsTrigger value="engagement">Engagement</TabsTrigger>
               </TabsList>
 
-              {/* Basic Info */}
+              {}
               <TabsContent value="basic">
                 <Card>
                   <CardHeader>
@@ -1441,6 +1441,7 @@ export const SocietyForm: React.FC = () => {
                             <SelectItem value="Active">Active</SelectItem>
                             <SelectItem value="Inactive">Inactive</SelectItem>
                             <SelectItem value="Trial">Trial</SelectItem>
+                            <SelectItem value="Suspended">Suspended</SelectItem>
                           </SelectContent>
                         </Select>
                         {errors["basic.status"] && (
@@ -1509,7 +1510,7 @@ export const SocietyForm: React.FC = () => {
                 </Card>
               </TabsContent>
 
-              {/* Structure */}
+              {}
               <TabsContent value="structure">
                 <Card>
                   <CardHeader>
@@ -1664,13 +1665,6 @@ export const SocietyForm: React.FC = () => {
                                             required
                                             maxLength={UNIT_NAME_MAX_LENGTH}
                                           />
-                                          <CharacterLimitHint
-                                            currentLength={
-                                              unit.number?.length ?? 0
-                                            }
-                                            maxLength={UNIT_NAME_MAX_LENGTH}
-                                            className="text-[11px]"
-                                          />
                                           {errors[
                                             `structure.wings.${wing.id}.units.${unit.id}`
                                           ] && (
@@ -1697,7 +1691,7 @@ export const SocietyForm: React.FC = () => {
                 </Card>
               </TabsContent>
 
-              {/* Gates */}
+              {}
               <TabsContent value="gates">
                 <div className="grid grid-cols-2 gap-6">
                   <Card>
@@ -1818,7 +1812,7 @@ export const SocietyForm: React.FC = () => {
                 </div>
               </TabsContent>
 
-              {/* Admins */}
+              {}
               <TabsContent value="admins">
                 <Card>
                   <CardHeader>
@@ -1925,7 +1919,7 @@ export const SocietyForm: React.FC = () => {
                 </Card>
               </TabsContent>
 
-              {/* Engagement */}
+              {}
               <TabsContent value="engagement">
                 <Card>
                   <CardHeader>

@@ -101,7 +101,7 @@ export const Signup: React.FC = () => {
 
   const handleFullNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    // Allow any character but hard-cap to our defined max length
+    
     const limitedValue = value.slice(0, FULL_NAME_MAX_LENGTH);
     setFullName(limitedValue);
     const error = validateFullName(limitedValue);
@@ -115,7 +115,7 @@ export const Signup: React.FC = () => {
     setFieldErrors((prev) => ({ ...prev, email: error }));
   };
 
-  // Handle phone number change with validation (only allow numbers)
+  
   const handlePhoneNumberChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {

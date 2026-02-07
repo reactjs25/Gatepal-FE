@@ -10,7 +10,7 @@ export const Dashboard: React.FC = () => {
   const { societies, allAdmins } = useData();
   const navigate = useNavigate();
 
-  // Update page title
+  
   useEffect(() => {
     document.title = 'Dashboard - GatePal';
   }, []);
@@ -69,7 +69,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
@@ -96,7 +96,7 @@ export const Dashboard: React.FC = () => {
         })}
       </div>
 
-      {/* Recent Societies */}
+      {}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

@@ -56,9 +56,9 @@ export const AdminManagement: React.FC = () => {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(30);
 
-  // Update page title
+  
   useEffect(() => {
     document.title = "Society Admins - GatePal";
   }, []);
@@ -66,15 +66,15 @@ export const AdminManagement: React.FC = () => {
   const filteredAndSortedAdmins = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    // First apply status filter
+    
     let filtered = allAdmins.filter((admin) => {
       return statusFilter === "all" || admin.status === statusFilter;
     });
 
-    // Then apply search filter if query exists
+    
     if (query && query.length > 0) {
       filtered = filtered.filter((admin) => {
-        // Search matching - check all fields with null/undefined safety
+        
         const adminName = String(admin.name || "")
           .toLowerCase()
           .trim();
@@ -157,7 +157,7 @@ export const AdminManagement: React.FC = () => {
       });
     }
 
-    // Apply sorting
+    
     if (sortField) {
       filtered = [...filtered].sort((a, b) => {
         let aValue: string | number;
@@ -235,13 +235,13 @@ export const AdminManagement: React.FC = () => {
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    // Reset to first page when search changes
+    
     setCurrentPage(1);
   };
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    // Reset to first page when status filter changes
+    
     setCurrentPage(1);
   };
 
@@ -360,7 +360,7 @@ export const AdminManagement: React.FC = () => {
 
   const handleAddDialogClose = () => {
     setIsAddDialogOpen(false);
-    // Clear form when dialog closes
+    
     setNewAdmin(initialNewAdminForm);
   };
 

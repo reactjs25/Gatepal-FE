@@ -23,7 +23,7 @@ export const Login: React.FC = () => {
     document.title = 'Super Admin Login - GatePal';
   }, []);
 
-  // Validate email
+  
   const validateEmail = (value: string): string | undefined => {
     if (!value.trim()) {
       return 'Email address is required';
@@ -45,7 +45,7 @@ export const Login: React.FC = () => {
     return undefined;
   };
 
-  // Handle email change with validation
+  
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
@@ -95,7 +95,7 @@ export const Login: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Header */}
+          {}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-4">
               <img src={logo} alt="GatePal" className="h-16" />

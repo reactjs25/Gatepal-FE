@@ -74,7 +74,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           );
         })}
 
-        {/* Societies Dropdown */}
+        {}
         <DropdownMenu open={societiesMenuOpen} onOpenChange={setSocietiesMenuOpen}>
           <DropdownMenuTrigger asChild>
             <button
@@ -164,14 +164,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
+      {}
       <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col">
         <SidebarContent />
       </aside>
 
-      {/* Main Content */}
+      {}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Header */}
+        {}
         <div className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center gap-3">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>

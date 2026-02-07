@@ -85,6 +85,10 @@ const mapStatus = (status?: string): Society['status'] => {
     return 'Trial';
   }
 
+  if (normalized === 'suspended') {
+    return 'Suspended';
+  }
+
   if (normalized === 'active') {
     return 'Active';
   }
@@ -282,6 +286,19 @@ export const toggleSocietyStatus = async (id: string): Promise<Society> => {
   }, 'Failed to update society status');
 };
 
+export const suspendSociety = async (id: string): Promise<Society> => {
+  return withErrorHandling(async () => {
+    const response = await apiClient.patch(`/society/${id}/suspend`);
+    const updated: ApiSociety | undefined = response.data?.data;
+
+    if (!updated) {
+      throw new Error('Invalid response from server while suspending society');
+    }
+
+    return normalizeSociety(updated);
+  }, 'Failed to suspend society');
+};
+
 export const fetchSocietyById = async (id: string): Promise<Society | undefined> => {
   return withErrorHandling(async () => {
     const response = await apiClient.get(`/society/${id}`);
@@ -403,5 +420,4 @@ export const normalizationUtils = {
   normalizeSociety,
   normalizeSocietyAdmin,
 };
-
 

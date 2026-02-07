@@ -15,6 +15,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  Ban,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { Society } from '../types';
@@ -54,6 +55,7 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 const parseCsvLine = (line: string): string[] => {
   const result: string[] = [];
@@ -325,7 +327,7 @@ const SAMPLE_IMPORT_ROWS: (string | number | null)[][] = [
 
 const downloadBlob = (blob: Blob, filename: string) => {
   if ('msSaveOrOpenBlob' in window.navigator) {
-    // @ts-expect-error - available only in legacy browsers.
+    
     window.navigator.msSaveOrOpenBlob(blob, filename);
     return;
   }
@@ -345,19 +347,21 @@ type SortField = 'societyName' | 'societyPin' | 'address' | 'totalWings' | 'unit
 type SortDirection = 'asc' | 'desc';
 
 export const SocietyList: React.FC = () => {
-  const { societies, toggleSocietyStatus, isLoadingSocieties, societiesError, addSociety } =
+  const { societies, toggleSocietyStatus, suspendSociety, isLoadingSocieties, societiesError, addSociety } =
     useData();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expirationFilter, setExpirationFilter] = useState<string>('all');
   const [togglingSocietyId, setTogglingSocietyId] = useState<string | null>(null);
+  const [suspendingSocietyId, setSuspendingSocietyId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(30);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedImportFile, setSelectedImportFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState('');
@@ -384,7 +388,25 @@ export const SocietyList: React.FC = () => {
 
       const matchesStatus = statusFilter === 'all' || society.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesExpiration = (() => {
+        if (expirationFilter === 'all') return true;
+        const now = new Date();
+        const endDate = new Date(society.engagementEndDate);
+        const monthsUntilExpiry = (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30);
+        
+        switch (expirationFilter) {
+          case '1month':
+            return monthsUntilExpiry <= 1 && monthsUntilExpiry >= 0;
+          case '2months':
+            return monthsUntilExpiry <= 2 && monthsUntilExpiry >= 0;
+          case '3months':
+            return monthsUntilExpiry <= 3 && monthsUntilExpiry >= 0;
+          default:
+            return true;
+        }
+      })();
+
+      return matchesSearch && matchesStatus && matchesExpiration;
     });
 
    
@@ -437,7 +459,7 @@ export const SocietyList: React.FC = () => {
     }
 
     return filtered;
-  }, [societies, searchQuery, statusFilter, sortField, sortDirection]);
+  }, [societies, searchQuery, statusFilter, expirationFilter, sortField, sortDirection]);
 
   const paginatedSocieties = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -582,6 +604,39 @@ export const SocietyList: React.FC = () => {
     const latitudeIndex = findHeaderIndex('latitude', 'lat');
     const longitudeIndex = findHeaderIndex('longitude', 'lng', 'long');
     const notesIndex = findHeaderIndex('notes', 'remarks');
+
+    
+    const wingColumns = collectIndexedColumns<'name' | 'totalUnits' | 'units'>(
+      headers,
+      'wing',
+      {
+        name: ['name'],
+        totalUnits: ['totalunits'],
+        units: ['units'],
+      }
+    );
+
+    const entryGateColumns = collectIndexedColumns<'name'>(
+      headers,
+      'entrygate',
+      { name: ['name'] }
+    );
+
+    const exitGateColumns = collectIndexedColumns<'name'>(
+      headers,
+      'exitgate',
+      { name: ['name'] }
+    );
+
+    const adminColumns = collectIndexedColumns<'name' | 'mobile' | 'email'>(
+      headers,
+      'admin',
+      {
+        name: ['name'],
+        mobile: ['mobile', 'phone'],
+        email: ['email'],
+      }
+    );
 
     const missingColumns: string[] = [];
     if (nameIndex === -1) missingColumns.push('Society Name');
@@ -734,10 +789,96 @@ export const SocietyList: React.FC = () => {
       const statusValue =
         statusIndex >= 0 ? normalizeStatus(statusRaw) : ('Active' as const);
 
-      const placeholderSocietyPin =
-        societyPinValue.trim().length > 0
-          ? societyPinValue
-          : `AUTO-${Date.now()}-${lineIndex}`;
+      
+      const placeholderSocietyPin = societyPinValue.trim().length > 0 ? societyPinValue : '';
+
+      // Parse wings from indexed columns
+      const parsedWings: Society['wings'] = [];
+      for (const wingNum of Object.keys(wingColumns).map(Number).sort((a, b) => a - b)) {
+        const wingCols = wingColumns[wingNum];
+        if (!wingCols) continue;
+        
+        const wingName = wingCols.name !== undefined ? (values[wingCols.name] ?? '').trim() : '';
+        if (!wingName) continue;
+        
+        const totalUnitsRaw = wingCols.totalUnits !== undefined ? (values[wingCols.totalUnits] ?? '') : '';
+        const unitsRaw = wingCols.units !== undefined ? (values[wingCols.units] ?? '') : '';
+        
+        const unitNames = splitDelimitedValues(unitsRaw);
+        const totalUnits = parseOptionalNumber(totalUnitsRaw) ?? unitNames.length;
+        
+        const units = unitNames.map((unitNumber, idx) => ({
+          id: `unit-${Date.now()}-${lineIndex}-${wingNum}-${idx}`,
+          number: unitNumber,
+        }));
+        
+        parsedWings.push({
+          id: `wing-${Date.now()}-${lineIndex}-${wingNum}`,
+          name: wingName,
+          totalUnits,
+          units,
+        });
+      }
+
+      // Parse entry gates from indexed columns
+      const parsedEntryGates: Society['entryGates'] = [];
+      for (const gateNum of Object.keys(entryGateColumns).map(Number).sort((a, b) => a - b)) {
+        const gateCols = entryGateColumns[gateNum];
+        if (!gateCols) continue;
+        
+        const gateName = gateCols.name !== undefined ? (values[gateCols.name] ?? '').trim() : '';
+        if (!gateName) continue;
+        
+        parsedEntryGates.push({
+          id: `entry-gate-${Date.now()}-${lineIndex}-${gateNum}`,
+          name: gateName,
+        });
+      }
+
+      // Parse exit gates from indexed columns
+      const parsedExitGates: Society['exitGates'] = [];
+      for (const gateNum of Object.keys(exitGateColumns).map(Number).sort((a, b) => a - b)) {
+        const gateCols = exitGateColumns[gateNum];
+        if (!gateCols) continue;
+        
+        const gateName = gateCols.name !== undefined ? (values[gateCols.name] ?? '').trim() : '';
+        if (!gateName) continue;
+        
+        parsedExitGates.push({
+          id: `exit-gate-${Date.now()}-${lineIndex}-${gateNum}`,
+          name: gateName,
+        });
+      }
+
+      // Parse admins from indexed columns
+      const parsedAdmins: Society['societyAdmins'] = [];
+      for (const adminNum of Object.keys(adminColumns).map(Number).sort((a, b) => a - b)) {
+        const adminCols = adminColumns[adminNum];
+        if (!adminCols) continue;
+        
+        const adminName = adminCols.name !== undefined ? (values[adminCols.name] ?? '').trim() : '';
+        const adminMobile = adminCols.mobile !== undefined ? (values[adminCols.mobile] ?? '').trim() : '';
+        const adminEmail = adminCols.email !== undefined ? (values[adminCols.email] ?? '').trim() : '';
+        
+        // Skip if no name provided
+        if (!adminName) continue;
+        
+        // Validate email if provided
+        if (adminEmail && !EMAIL_REGEX.test(adminEmail)) {
+          continue;
+        }
+        
+        parsedAdmins.push({
+          id: `admin-${Date.now()}-${lineIndex}-${adminNum}`,
+          name: adminName,
+          mobile: adminMobile,
+          email: adminEmail,
+          status: 'Active',
+          societyId: '',
+          societyName,
+          createdAt: now.toISOString(),
+        });
+      }
 
       const societyPayload: Society = {
         id: `soc${Date.now()}-${lineIndex}-${Math.random().toString(36).slice(2, 8)}`,
@@ -747,11 +888,11 @@ export const SocietyList: React.FC = () => {
         country: countryValue,
         latitude: latitudeValue ?? undefined,
         longitude: longitudeValue ?? undefined,
-        totalWings: 0,
-        wings: [],
-        entryGates: [],
-        exitGates: [],
-        societyAdmins: [],
+        totalWings: parsedWings.length,
+        wings: parsedWings,
+        entryGates: parsedEntryGates,
+        exitGates: parsedExitGates,
+        societyAdmins: parsedAdmins,
         engagementStartDate: engagementStartDate.toISOString(),
         engagementEndDate: engagementEndDate.toISOString(),
         maintenanceDueDate,
@@ -829,32 +970,109 @@ export const SocietyList: React.FC = () => {
   const pageStart = totalSocieties === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const pageEnd = totalSocieties === 0 ? 0 : Math.min(currentPage * itemsPerPage, totalSocieties);
 
-  const handleExportSocieties = () => {
+  const handleExportSocieties = async () => {
     if (filteredAndSortedSocieties.length === 0) {
       toast.error('There are no societies to export.');
       return;
     }
 
     try {
-      const rows: (string | number | null | undefined)[][] = [
-        [
-          'Society Name',
-          'Society PIN',
-          'Address',
-          'City',
-          'Country',
-          'Status',
-          'Engagement Start',
-          'Engagement End',
-          'Maintenance Due Date',
-          'Base Rate',
-          'GST',
-          'Rate Incl GST',
-          'Latitude',
-          'Longitude',
-          'Notes',
-        ],
-        ...filteredAndSortedSocieties.map((society) => [
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'GatePal';
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet('Societies', {
+        views: [{ state: 'frozen', ySplit: 1 }],
+      });
+
+      // Calculate max counts for dynamic columns
+      let maxWings = 0;
+      let maxEntryGates = 0;
+      let maxExitGates = 0;
+      let maxAdmins = 0;
+
+      filteredAndSortedSocieties.forEach((society) => {
+        maxWings = Math.max(maxWings, society.wings?.length ?? 0);
+        maxEntryGates = Math.max(maxEntryGates, society.entryGates?.length ?? 0);
+        maxExitGates = Math.max(maxExitGates, society.exitGates?.length ?? 0);
+        maxAdmins = Math.max(maxAdmins, society.societyAdmins?.length ?? 0);
+      });
+
+      // Build headers
+      const headers: string[] = [
+        'Society Name',
+        'Society PIN',
+        'Address',
+        'City',
+        'Country',
+        'Status',
+        'Engagement Start',
+        'Engagement End',
+        'Maintenance Due Date',
+        'Base Rate',
+        'GST',
+        'Rate Incl GST',
+        'Latitude',
+        'Longitude',
+        'Notes',
+        'Total Wings',
+        'Total Units',
+      ];
+
+      // Add wing columns
+      for (let i = 1; i <= maxWings; i++) {
+        headers.push(`Wing ${i} Name`, `Wing ${i} Units`);
+      }
+
+      
+      for (let i = 1; i <= maxEntryGates; i++) {
+        headers.push(`Entry Gate ${i}`);
+      }
+
+      
+      for (let i = 1; i <= maxExitGates; i++) {
+        headers.push(`Exit Gate ${i}`);
+      }
+
+      
+      for (let i = 1; i <= maxAdmins; i++) {
+        headers.push(`Admin ${i} Name`, `Admin ${i} Mobile`, `Admin ${i} Email`, `Admin ${i} Status`);
+      }
+
+      
+      const headerRow = worksheet.addRow(headers);
+
+      
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: '2563EB' },
+        };
+        cell.font = {
+          bold: true,
+          color: { argb: 'FFFFFF' },
+          size: 11,
+        };
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: 'center',
+          wrapText: true,
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: '1E40AF' } },
+          bottom: { style: 'thin', color: { argb: '1E40AF' } },
+          left: { style: 'thin', color: { argb: '1E40AF' } },
+          right: { style: 'thin', color: { argb: '1E40AF' } },
+        };
+      });
+      headerRow.height = 25;
+
+      
+      filteredAndSortedSocieties.forEach((society, rowIndex) => {
+        const totalUnits = society.wings?.reduce((sum, wing) => sum + (wing.units?.length ?? wing.totalUnits ?? 0), 0) ?? 0;
+
+        const rowData: (string | number | null | undefined)[] = [
           society.societyName,
           society.societyPin,
           society.address,
@@ -870,13 +1088,97 @@ export const SocietyList: React.FC = () => {
           society.latitude ?? '',
           society.longitude ?? '',
           society.notes ?? '',
-        ]),
-      ];
+          society.wings?.length ?? 0,
+          totalUnits,
+        ];
 
-      const csvContent = rows.map((row) => row.map(escapeCsvValue).join(',')).join('\r\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        // Add wing data
+        for (let i = 0; i < maxWings; i++) {
+          const wing = society.wings?.[i];
+          if (wing) {
+            rowData.push(wing.name);
+            rowData.push(wing.units?.map((u) => u.number).join('; ') ?? '');
+          } else {
+            rowData.push('', '');
+          }
+        }
+
+        // Add entry gate data
+        for (let i = 0; i < maxEntryGates; i++) {
+          const gate = society.entryGates?.[i];
+          rowData.push(gate?.name ?? '');
+        }
+
+        // Add exit gate data
+        for (let i = 0; i < maxExitGates; i++) {
+          const gate = society.exitGates?.[i];
+          rowData.push(gate?.name ?? '');
+        }
+
+        // Add admin data
+        for (let i = 0; i < maxAdmins; i++) {
+          const admin = society.societyAdmins?.[i];
+          if (admin) {
+            rowData.push(admin.name, admin.mobile, admin.email, admin.status);
+          } else {
+            rowData.push('', '', '', '');
+          }
+        }
+
+        const dataRow = worksheet.addRow(rowData);
+
+        // Style data rows with alternating colors
+        const isEvenRow = rowIndex % 2 === 0;
+        dataRow.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: isEvenRow ? 'F8FAFC' : 'FFFFFF' },
+          };
+          cell.font = { size: 10 };
+          cell.alignment = { vertical: 'middle', wrapText: true };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'E2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+            left: { style: 'thin', color: { argb: 'E2E8F0' } },
+            right: { style: 'thin', color: { argb: 'E2E8F0' } },
+          };
+        });
+
+        
+        const statusCell = dataRow.getCell(6);
+        if (society.status === 'Active') {
+          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DCFCE7' } };
+          statusCell.font = { size: 10, color: { argb: '166534' }, bold: true };
+        } else if (society.status === 'Inactive') {
+          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F3F4F6' } };
+          statusCell.font = { size: 10, color: { argb: '4B5563' }, bold: true };
+        } else if (society.status === 'Trial') {
+          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DBEAFE' } };
+          statusCell.font = { size: 10, color: { argb: '1E40AF' }, bold: true };
+        } else if (society.status === 'Suspended') {
+          statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FEE2E2' } };
+          statusCell.font = { size: 10, color: { argb: 'DC2626' }, bold: true };
+        }
+      });
+
+      
+      worksheet.columns.forEach((column, colIndex) => {
+        let maxLength = 10;
+        column.eachCell?.({ includeEmpty: true }, (cell) => {
+          const cellValue = cell.value?.toString() ?? '';
+          maxLength = Math.max(maxLength, Math.min(cellValue.length + 2, 50));
+        });
+        column.width = Math.max(12, maxLength);
+      });
+
+      // Generate buffer and download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
       const timestamp = new Date().toISOString().split('T')[0];
-      downloadBlob(blob, `societies-${timestamp}.csv`);
+      downloadBlob(blob, `societies-${timestamp}.xlsx`);
 
       toast.success('Societies exported successfully.');
     } catch (error) {
@@ -905,6 +1207,20 @@ export const SocietyList: React.FC = () => {
       toast.error(message);
     } finally {
       setTogglingSocietyId(null);
+    }
+  };
+
+  const handleSuspend = async (societyId: string) => {
+    try {
+      setSuspendingSocietyId(societyId);
+      await suspendSociety(societyId);
+      toast.success('Society suspended successfully');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to suspend society. Please try again.';
+      toast.error(message);
+    } finally {
+      setSuspendingSocietyId(null);
     }
   };
 
@@ -1012,7 +1328,7 @@ export const SocietyList: React.FC = () => {
           </Button>
         </div>
 
-        {/* Filters */}
+        {}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1 min-w-[250px] lg:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -1035,6 +1351,19 @@ export const SocietyList: React.FC = () => {
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
                   <SelectItem value="Trial">Trial</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={expirationFilter} onValueChange={setExpirationFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <Filter className="w-4 h-4 mr-1.5" />
+                  <SelectValue placeholder="Filter by expiration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Expiring: All Time</SelectItem>
+                  <SelectItem value="1month">Expiring: in 1 month</SelectItem>
+                  <SelectItem value="2months">Expiring: in 2 months</SelectItem>
+                  <SelectItem value="3months">Expiring: in 3 months</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={handleImportButtonClick} disabled={isImporting}>
@@ -1074,13 +1403,13 @@ export const SocietyList: React.FC = () => {
         </div>
       </div>
 
-      {/* Societies Table - Desktop */}
+      {}
       <div className="hidden md:block">
         <TableContainer component={Paper} className="rounded-lg border border-gray-200 shadow-sm">
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>
+                <TableCell sx={{ minWidth: 280 }}>
                   <TableSortLabel
                     active={sortField === 'societyName'}
                     direction={sortField === 'societyName' ? sortDirection : 'asc'}
@@ -1109,29 +1438,11 @@ export const SocietyList: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <TableSortLabel
-                    active={sortField === 'totalWings'}
-                    direction={sortField === 'totalWings' ? sortDirection : 'asc'}
-                    onClick={() => handleSort('totalWings')}
-                  >
-                    Wings
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
                     active={sortField === 'units'}
                     direction={sortField === 'units' ? sortDirection : 'asc'}
                     onClick={() => handleSort('units')}
                   >
                     Units
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={sortField === 'admins'}
-                    direction={sortField === 'admins' ? sortDirection : 'asc'}
-                    onClick={() => handleSort('admins')}
-                  >
-                    Admins
                   </TableSortLabel>
                 </TableCell>
                 <TableCell>
@@ -1158,13 +1469,13 @@ export const SocietyList: React.FC = () => {
             <TableBody>
               {isLoadingSocieties ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" className="py-8 text-gray-500">
+                  <TableCell colSpan={7} align="center" className="py-8 text-gray-500">
                     Loading societies...
                   </TableCell>
                 </TableRow>
               ) : paginatedSocieties.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" className="py-8 text-gray-500">
+                  <TableCell colSpan={7} align="center" className="py-8 text-gray-500">
                     No societies found
                   </TableCell>
                 </TableRow>
@@ -1176,9 +1487,9 @@ export const SocietyList: React.FC = () => {
                     sx={{ cursor: 'pointer' }}
                     onClick={() => navigate(`/societies/${society.id}`)}
                   >
-                    <TableCell>
+                    <TableCell sx={{ minWidth: 280 }}>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <div className="w-10 h-10 min-w-[40px] min-h-[40px] bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Building2 className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
@@ -1192,9 +1503,7 @@ export const SocietyList: React.FC = () => {
                     <TableCell className="max-w-xs">
                       <p className="text-sm text-gray-600 truncate">{society.address}</p>
                     </TableCell>
-                    <TableCell>{society.totalWings}</TableCell>
                     <TableCell>{society.wings.reduce((sum, wing) => sum + wing.totalUnits, 0)}</TableCell>
-                    <TableCell>{society.societyAdmins.length}</TableCell>
                     <TableCell>
                       <Badge
                         variant={society.status === 'Active' ? 'default' : 'secondary'}
@@ -1205,7 +1514,9 @@ export const SocietyList: React.FC = () => {
                             ? 'bg-gray-100 text-gray-800 hover:bg-gray-100'
                             : society.status === 'Trial'
                             ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
-                            : 'bg-red-100 text-red-800 hover:bg-red-100'
+                            : society.status === 'Suspended'
+                            ? 'bg-red-100 text-red-800 hover:bg-red-100'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
                         }
                       >
                         {society.status}
@@ -1242,11 +1553,24 @@ export const SocietyList: React.FC = () => {
                               if (togglingSocietyId === society.id) return;
                               await handleStatusToggle(society.id);
                             }}
-                            disabled={togglingSocietyId === society.id}
+                            disabled={togglingSocietyId === society.id || society.status === 'Suspended'}
                           >
                             <Power className="w-4 h-4 mr-1.5" />
                             {society.status === 'Active' ? 'Deactivate' : 'Activate'}
                           </DropdownMenuItem>
+                          {society.status === 'Inactive' && (
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                if (suspendingSocietyId === society.id) return;
+                                await handleSuspend(society.id);
+                              }}
+                              disabled={suspendingSocietyId === society.id}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Ban className="w-4 h-4 mr-1.5" />
+                              Suspend
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -1258,7 +1582,7 @@ export const SocietyList: React.FC = () => {
         </TableContainer>
       </div>
 
-      {/* Societies Cards - Mobile */}
+      {}
       <div className="md:hidden space-y-4">
         {isLoadingSocieties ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
@@ -1274,7 +1598,7 @@ export const SocietyList: React.FC = () => {
               key={society.id}
               className="bg-white rounded-lg border border-gray-200 p-4 space-y-4"
             >
-              {/* Header */}
+              {}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1">
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -1309,22 +1633,35 @@ export const SocietyList: React.FC = () => {
                         if (togglingSocietyId === society.id) return;
                         await handleStatusToggle(society.id);
                       }}
-                      disabled={togglingSocietyId === society.id}
+                      disabled={togglingSocietyId === society.id || society.status === 'Suspended'}
                     >
                       <Power className="w-4 h-4 mr-1.5" />
                       {society.status === 'Active' ? 'Deactivate' : 'Activate'}
                     </DropdownMenuItem>
+                    {society.status === 'Inactive' && (
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          if (suspendingSocietyId === society.id) return;
+                          await handleSuspend(society.id);
+                        }}
+                        disabled={suspendingSocietyId === society.id}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Ban className="w-4 h-4 mr-1.5" />
+                        Suspend
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
 
-              {/* Location */}
+              {}
               <div>
                 <p className="text-xs text-gray-500 mb-1">Location</p>
                 <p className="text-sm text-gray-900">{society.address}</p>
               </div>
 
-              {/* Stats Grid */}
+              {}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-gray-50 rounded-lg p-2 text-center">
                   <p className="text-xs text-gray-500 mb-1">Wings</p>
@@ -1342,7 +1679,7 @@ export const SocietyList: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status & Engagement */}
+              {}
               <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Status</p>
@@ -1355,7 +1692,9 @@ export const SocietyList: React.FC = () => {
                         ? 'bg-gray-100 text-gray-800 hover:bg-gray-100'
                         : society.status === 'Trial'
                         ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
-                        : 'bg-red-100 text-red-800 hover:bg-red-100'
+                        : society.status === 'Suspended'
+                        ? 'bg-red-100 text-red-800 hover:bg-red-100'
+                        : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
                     }
                   >
                     {society.status}
@@ -1374,7 +1713,7 @@ export const SocietyList: React.FC = () => {
         )}
       </div>
 
-      {/* Pagination */}
+      {}
       {totalPages > 1 && (
         <div className="mt-2 flex items-center justify-between">
           <Button

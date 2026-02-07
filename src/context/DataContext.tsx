@@ -12,6 +12,7 @@ import {
   createSociety as createSocietyService,
   updateSociety as updateSocietyService,
   toggleSocietyStatus as toggleSocietyStatusService,
+  suspendSociety as suspendSocietyService,
   fetchSocietyById as fetchSocietyByIdService,
   fetchSocietyAdmins as fetchSocietyAdminsService,
   createSocietyAdmin as createSocietyAdminService,
@@ -30,6 +31,7 @@ interface DataContextType {
   addSociety: (society: Society) => Promise<Society>;
   updateSociety: (id: string, updates: Partial<Society>) => Promise<Society>;
   toggleSocietyStatus: (id: string) => Promise<Society>;
+  suspendSociety: (id: string) => Promise<Society>;
   deleteSociety: (id: string) => void;
   getSocietyById: (id: string) => Society | undefined;
   fetchSocietyById: (id: string) => Promise<Society | undefined>;
@@ -148,6 +150,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return normalized;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to update society status');
+      throw new Error(message);
+    }
+  }, []);
+
+  const suspendSociety = useCallback(async (id: string): Promise<Society> => {
+    try {
+      const normalized = await suspendSocietyService(id);
+      setSocieties((prev) => prev.map((societyItem) => (societyItem.id === id ? normalized : societyItem)));
+      setSocietiesError(null);
+      return normalized;
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to suspend society');
       throw new Error(message);
     }
   }, []);
@@ -343,6 +357,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addSociety,
         updateSociety,
         toggleSocietyStatus,
+        suspendSociety,
         deleteSociety,
         getSocietyById,
         fetchSocietyById,

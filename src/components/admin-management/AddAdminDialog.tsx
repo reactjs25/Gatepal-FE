@@ -48,10 +48,10 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
   const [mobileError, setMobileError] = useState<string | undefined>(undefined);
   const [societyError, setSocietyError] = useState<string | undefined>(undefined);
 
-  // Filter out inactive societies
+  
   const activeSocieties = societies.filter((s) => s.status === 'Active');
 
-  // Clear form and errors when dialog closes
+  
   useEffect(() => {
     if (!isOpen) {
       setNameError(undefined);
@@ -81,7 +81,7 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
       return 'Please enter a valid email address';
     }
     
-    // Check for duplicate email across all admins
+    
     const normalizedEmail = value.trim().toLowerCase();
     const duplicateEmail = allAdmins.find(
       (admin) => admin.email.toLowerCase() === normalizedEmail
@@ -106,7 +106,7 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
       return 'Phone number must be exactly 10 digits';
     }
     
-    // Check for duplicate mobile across all admins
+    
     const duplicateMobile = allAdmins.find(
       (admin) => admin.mobile.replace(/\D/g, '') === mobileDigits
     );
@@ -139,7 +139,7 @@ export const AddAdminDialog: React.FC<AddAdminDialogProps> = ({
   };
 
   const handleMobileChange = (value: string) => {
-    // Only allow numeric characters and limit to 10 digits
+    
     const numericValue = value.replace(/\D/g, '').slice(0, 10);
     onChange('mobile', numericValue);
     const error = validateMobile(numericValue);

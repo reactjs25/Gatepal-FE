@@ -5,15 +5,11 @@ type CharacterLimitHintProps = {
   currentLength: number;
   maxLength: number;
   className?: string;
-  /**
-   * Always render the helper text even when the field is empty.
-   * Defaults to true because we want to surface backend limits up front.
-   */
+  
+
   alwaysShow?: boolean;
-  /**
-   * When the remaining characters are below this threshold the helper text
-   * switches to a warning color.
-   */
+  
+
   warnAt?: number;
 };
 

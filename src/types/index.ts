@@ -19,7 +19,7 @@ export interface Society {
   baseRate: number;
   gst: number;
   rateInclGst: number;
-  status: 'Active' | 'Inactive' | 'Trial';
+  status: 'Active' | 'Inactive' | 'Trial' | 'Suspended';
   societyPin: string;
   notes?: string;
   createdBy: string;
