@@ -326,9 +326,10 @@ const SAMPLE_IMPORT_ROWS: (string | number | null)[][] = [
 ];
 
 const downloadBlob = (blob: Blob, filename: string) => {
-  if ('msSaveOrOpenBlob' in window.navigator) {
-    
-    window.navigator.msSaveOrOpenBlob(blob, filename);
+ 
+  const nav = window.navigator as Navigator & { msSaveOrOpenBlob?: (blob: Blob, filename: string) => boolean };
+  if (nav.msSaveOrOpenBlob) {
+    nav.msSaveOrOpenBlob(blob, filename);
     return;
   }
 
@@ -1200,7 +1201,7 @@ export const SocietyList: React.FC = () => {
       setTogglingSocietyId(societyId);
       const updated = await toggleSocietyStatus(societyId);
       const isActive = updated.status === 'Active';
-      toast.success(`Society ${isActive ? 'activated' : 'deactivated'} successfully`);
+      toast.success(`Society ${isActive ? 'activated' : 'deactivated'} successfully.`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to update society status. Please try again.';
@@ -1214,7 +1215,7 @@ export const SocietyList: React.FC = () => {
     try {
       setSuspendingSocietyId(societyId);
       await suspendSociety(societyId);
-      toast.success('Society suspended successfully');
+      toast.success('Society suspended successfully.');
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to suspend society. Please try again.';

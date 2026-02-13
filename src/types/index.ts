@@ -1,3 +1,9 @@
+export interface VehicleLimits {
+  twoWheelersPerUnit: number;
+  fourWheelersPerUnit: number;
+  otherVehiclesPerUnit: number;
+}
+
 export interface Society {
   id: string;
   societyName: string;
@@ -22,6 +28,7 @@ export interface Society {
   status: 'Active' | 'Inactive' | 'Trial' | 'Suspended';
   societyPin: string;
   notes?: string;
+  vehicleLimits?: VehicleLimits;
   createdBy: string;
   lastUpdatedBy: string;
   createdAt: string;

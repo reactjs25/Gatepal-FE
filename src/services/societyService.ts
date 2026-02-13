@@ -37,6 +37,12 @@ interface ApiEngagement {
   total?: number;
 }
 
+interface ApiVehicleLimits {
+  twoWheelersPerUnit?: number;
+  fourWheelersPerUnit?: number;
+  otherVehiclesPerUnit?: number;
+}
+
 interface ApiSociety {
   _id: string;
   societyName: string;
@@ -54,6 +60,7 @@ interface ApiSociety {
   exitGates?: ApiGate[];
   societyAdmins?: ApiSocietyAdmin[];
   engagement?: ApiEngagement;
+  vehicleLimits?: ApiVehicleLimits;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
@@ -139,6 +146,14 @@ const normalizeSociety = (society: ApiSociety): Society => {
     createdAt: admin.createdAt ?? society.createdAt ?? new Date().toISOString(),
   }));
 
+  const vehicleLimits = society.vehicleLimits
+    ? {
+        twoWheelersPerUnit: society.vehicleLimits.twoWheelersPerUnit ?? 0,
+        fourWheelersPerUnit: society.vehicleLimits.fourWheelersPerUnit ?? 0,
+        otherVehiclesPerUnit: society.vehicleLimits.otherVehiclesPerUnit ?? 0,
+      }
+    : undefined;
+
   return {
     id: society._id,
     societyName: society.societyName,
@@ -161,6 +176,7 @@ const normalizeSociety = (society: ApiSociety): Society => {
     status: mapStatus(society.status),
     societyPin: society.societyPin,
     notes: society.notes,
+    vehicleLimits,
     createdBy: society.createdBy ?? 'System',
     lastUpdatedBy: society.lastUpdatedBy ?? 'System',
     createdAt: society.createdAt ?? new Date().toISOString(),
@@ -218,6 +234,13 @@ const buildSocietyPayload = (society: Society) => ({
     gst: society.gst,
     total: society.rateInclGst,
   },
+  vehicleLimits: society.vehicleLimits
+    ? {
+        twoWheelersPerUnit: society.vehicleLimits.twoWheelersPerUnit ?? 0,
+        fourWheelersPerUnit: society.vehicleLimits.fourWheelersPerUnit ?? 0,
+        otherVehiclesPerUnit: society.vehicleLimits.otherVehiclesPerUnit ?? 0,
+      }
+    : undefined,
 });
 
 const extractErrorMessage = (error: unknown, fallback: string) => {

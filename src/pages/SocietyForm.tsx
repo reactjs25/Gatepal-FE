@@ -67,6 +67,9 @@ type FormState = {
   gst: string;
   rateInclGst: string;
   notes: string;
+  twoWheelersPerUnit: string;
+  fourWheelersPerUnit: string;
+  otherVehiclesPerUnit: string;
 };
 
 const tabOrder = [
@@ -125,7 +128,6 @@ export const SocietyForm: React.FC = () => {
     updateSociety,
     getSocietyById,
     fetchSocietyById,
-    allAdmins,
   } = useData();
   const { user } = useAuth();
   const isEditMode = !!id;
@@ -146,6 +148,9 @@ export const SocietyForm: React.FC = () => {
     gst: "",
     rateInclGst: "",
     notes: "",
+    twoWheelersPerUnit: "0",
+    fourWheelersPerUnit: "0",
+    otherVehiclesPerUnit: "0",
   });
 
   const [wings, setWings] = useState<Wing[]>([]);
@@ -331,6 +336,9 @@ export const SocietyForm: React.FC = () => {
         gst: society.gst.toString(),
         rateInclGst: society.rateInclGst.toString(),
         notes: truncateText(society.notes || "", NOTES_MAX_LENGTH),
+        twoWheelersPerUnit: society.vehicleLimits?.twoWheelersPerUnit?.toString() || "0",
+        fourWheelersPerUnit: society.vehicleLimits?.fourWheelersPerUnit?.toString() || "0",
+        otherVehiclesPerUnit: society.vehicleLimits?.otherVehiclesPerUnit?.toString() || "0",
       });
       setWings(cloneWings(society.wings));
       setEntryGates(ensureGates(society.entryGates, "entry"));
@@ -362,7 +370,7 @@ export const SocietyForm: React.FC = () => {
             populateFromSociety(fetched);
             setHasInitialized(true);
           } else {
-            toast.error("Society not found");
+            toast.error("Society not found.");
             navigate("/societies");
           }
         } catch (error) {
@@ -827,19 +835,6 @@ export const SocietyForm: React.FC = () => {
               mobileNumbers.add(mobileDigits);
             }
 
-            // Check for duplicates across all existing admins (excluding current society's admins in edit mode)
-            const existingAdmin = allAdmins.find((a) => {
-              // In edit mode, exclude admins from the current society
-              if (isEditMode && id && a.societyId === id) {
-                return false;
-              }
-              return a.mobile.replace(/\D/g, "") === mobileDigits;
-            });
-            if (existingAdmin) {
-              tabErrors[
-                `${adminKey}.mobile`
-              ] = `This phone number already exists in ${existingAdmin.societyName}.`;
-            }
           }
         }
         if (!admin.email.trim()) {
@@ -857,19 +852,6 @@ export const SocietyForm: React.FC = () => {
             emailAddresses.add(normalizedEmail);
           }
 
-          // Check for duplicates across all existing admins (excluding current society's admins in edit mode)
-          const existingAdmin = allAdmins.find((a) => {
-            // In edit mode, exclude admins from the current society
-            if (isEditMode && id && a.societyId === id) {
-              return false;
-            }
-            return a.email.toLowerCase() === normalizedEmail;
-          });
-          if (existingAdmin) {
-            tabErrors[
-              `${adminKey}.email`
-            ] = `This email already exists in ${existingAdmin.societyName}.`;
-          }
         }
       });
     }
@@ -1050,6 +1032,11 @@ export const SocietyForm: React.FC = () => {
       status: formData.status as "Active" | "Inactive" | "Trial" | "Suspended",
       societyPin: formData.societyPin,
       notes: notesValue || undefined,
+      vehicleLimits: {
+        twoWheelersPerUnit: parseInt(formData.twoWheelersPerUnit, 10) || 0,
+        fourWheelersPerUnit: parseInt(formData.fourWheelersPerUnit, 10) || 0,
+        otherVehiclesPerUnit: parseInt(formData.otherVehiclesPerUnit, 10) || 0,
+      },
       createdBy: user?.name || "Admin",
       lastUpdatedBy: user?.name || "Admin",
       createdAt: isEditMode
@@ -1069,10 +1056,10 @@ export const SocietyForm: React.FC = () => {
     try {
       if (isEditMode && id) {
         await updateSociety(id, society);
-        toast.success("Society updated successfully");
+        toast.success("Society updated successfully.");
       } else {
         await addSociety(society);
-        toast.success("Society created successfully");
+        toast.success("Society created successfully.");
       }
       navigate("/societies");
     } catch (error) {
@@ -1505,6 +1492,71 @@ export const SocietyForm: React.FC = () => {
                           {errors["basic.notes"]}
                         </p>
                       )}
+                    </div>
+
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Vehicle Limits Per Unit
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Configure the maximum number of vehicles allowed per unit in this society.
+                      </p>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="twoWheelersPerUnit">
+                            Two Wheelers Per Unit
+                          </Label>
+                          <Input
+                            id="twoWheelersPerUnit"
+                            type="number"
+                            min="0"
+                            value={formData.twoWheelersPerUnit}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "twoWheelersPerUnit",
+                                e.target.value
+                              )
+                            }
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="fourWheelersPerUnit">
+                            Four Wheelers Per Unit
+                          </Label>
+                          <Input
+                            id="fourWheelersPerUnit"
+                            type="number"
+                            min="0"
+                            value={formData.fourWheelersPerUnit}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "fourWheelersPerUnit",
+                                e.target.value
+                              )
+                            }
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="otherVehiclesPerUnit">
+                            Other Vehicles Per Unit
+                          </Label>
+                          <Input
+                            id="otherVehiclesPerUnit"
+                            type="number"
+                            min="0"
+                            value={formData.otherVehiclesPerUnit}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "otherVehiclesPerUnit",
+                                e.target.value
+                              )
+                            }
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

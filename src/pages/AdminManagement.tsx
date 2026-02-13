@@ -285,7 +285,7 @@ export const AdminManagement: React.FC = () => {
         email: editingAdmin.email,
         mobile: editingAdmin.mobile,
       });
-      toast.success("Admin updated successfully");
+      toast.success("Admin updated successfully.");
       closeEditDialog();
     } catch (error) {
       const message =
@@ -303,7 +303,7 @@ export const AdminManagement: React.FC = () => {
       setPendingAdminId(admin.id);
       const updated = await toggleSocietyAdminStatus(admin.societyId, admin.id);
       toast.success(
-        `Admin ${updated.status === "Active" ? "activated" : "deactivated"}`
+        `Admin ${updated.status === "Active" ? "activated" : "deactivated"}.`
       );
     } catch (error) {
       const message =
@@ -327,7 +327,7 @@ export const AdminManagement: React.FC = () => {
     try {
       setPendingAdminId(admin.id);
       await deleteSocietyAdmin(admin.societyId, admin.id);
-      toast.success("Admin removed successfully");
+      toast.success("Admin removed successfully.");
     } catch (error) {
       const message =
         error instanceof Error
@@ -346,7 +346,7 @@ export const AdminManagement: React.FC = () => {
         admin.societyId,
         admin.id
       );
-      toast.success(message || `Password reset link sent to ${admin.email}`);
+      toast.success(message || `Password reset link sent to ${admin.email}.`);
     } catch (error) {
       const message =
         error instanceof Error
@@ -381,7 +381,7 @@ export const AdminManagement: React.FC = () => {
       !newAdmin.mobile ||
       !newAdmin.societyId
     ) {
-      toast.error("Please fill in all fields");
+      toast.error("Please fill in all fields.");
       return;
     }
 
@@ -389,7 +389,7 @@ export const AdminManagement: React.FC = () => {
       (candidate) => candidate.id === newAdmin.societyId
     );
     if (!society) {
-      toast.error("Please select a valid society");
+      toast.error("Please select a valid society.");
       return;
     }
 
@@ -401,7 +401,7 @@ export const AdminManagement: React.FC = () => {
         mobile: newAdmin.mobile,
       });
 
-      toast.success(`Admin added to ${created.societyName} successfully`);
+      toast.success(`Admin added to ${created.societyName} successfully.`);
       setNewAdmin(initialNewAdminForm);
       handleAddDialogClose();
     } catch (error) {
