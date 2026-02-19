@@ -1494,76 +1494,12 @@ export const SocietyForm: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="border-t pt-4 mt-4">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">
-                        Vehicle Limits Per Unit
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Configure the maximum number of vehicles allowed per unit in this society.
-                      </p>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="twoWheelersPerUnit">
-                            Two Wheelers Per Unit
-                          </Label>
-                          <Input
-                            id="twoWheelersPerUnit"
-                            type="number"
-                            min="0"
-                            value={formData.twoWheelersPerUnit}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "twoWheelersPerUnit",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="fourWheelersPerUnit">
-                            Four Wheelers Per Unit
-                          </Label>
-                          <Input
-                            id="fourWheelersPerUnit"
-                            type="number"
-                            min="0"
-                            value={formData.fourWheelersPerUnit}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "fourWheelersPerUnit",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="otherVehiclesPerUnit">
-                            Other Vehicles Per Unit
-                          </Label>
-                          <Input
-                            id="otherVehiclesPerUnit"
-                            type="number"
-                            min="0"
-                            value={formData.otherVehiclesPerUnit}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "otherVehiclesPerUnit",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0"
-                          />
-                        </div>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
               {}
-              <TabsContent value="structure">
+              <TabsContent value="structure" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -1739,6 +1675,64 @@ export const SocietyForm: React.FC = () => {
                         );
                       })
                     )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Unit Vehicle Allocation</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Configure the maximum number of vehicles allowed per unit in this society.
+                    </p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="twoWheelersPerUnit">
+                          Two Wheelers Per Unit
+                        </Label>
+                        <Input
+                          id="twoWheelersPerUnit"
+                          type="number"
+                          min="0"
+                          value={formData.twoWheelersPerUnit}
+                          onChange={(e) =>
+                            handleInputChange("twoWheelersPerUnit", e.target.value)
+                          }
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fourWheelersPerUnit">
+                          Four Wheelers Per Unit
+                        </Label>
+                        <Input
+                          id="fourWheelersPerUnit"
+                          type="number"
+                          min="0"
+                          value={formData.fourWheelersPerUnit}
+                          onChange={(e) =>
+                            handleInputChange("fourWheelersPerUnit", e.target.value)
+                          }
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="otherVehiclesPerUnit">
+                          Other Vehicles Per Unit
+                        </Label>
+                        <Input
+                          id="otherVehiclesPerUnit"
+                          type="number"
+                          min="0"
+                          value={formData.otherVehiclesPerUnit}
+                          onChange={(e) =>
+                            handleInputChange("otherVehiclesPerUnit", e.target.value)
+                          }
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
