@@ -22,6 +22,7 @@ interface ApiGate {
 interface ApiSocietyAdmin {
   _id?: string;
   name: string;
+  countryCode?: string;
   mobile: string;
   email: string;
   status?: SocietyAdmin['status'];
@@ -138,6 +139,7 @@ const normalizeSociety = (society: ApiSociety): Society => {
   const admins = (society.societyAdmins ?? []).map((admin) => ({
     id: admin._id ?? `${society._id}-admin-${admin.email ?? admin.name}`,
     name: admin.name,
+    countryCode: admin.countryCode ?? '+91',
     mobile: admin.mobile,
     email: admin.email,
     status: admin.status ?? 'Active',
@@ -192,6 +194,7 @@ const normalizeSocietyAdmin = (
 ): SocietyAdmin => ({
   id: admin._id ?? `${societyId}-admin-${admin.email ?? admin.name}`,
   name: admin.name,
+  countryCode: admin.countryCode ?? '+91',
   mobile: admin.mobile,
   email: admin.email,
   status: admin.status ?? 'Active',
@@ -224,6 +227,7 @@ const buildSocietyPayload = (society: Society) => ({
     .filter((admin) => admin.name && admin.email && admin.mobile)
     .map((admin) => ({
       name: admin.name,
+      countryCode: admin.countryCode ?? '+91',
       mobile: admin.mobile,
       email: admin.email,
     })),

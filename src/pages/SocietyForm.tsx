@@ -89,6 +89,7 @@ const SOCIETY_NAME_MAX_LENGTH = 255;
 const ADDRESS_MAX_LENGTH = 1000;
 const NOTES_MAX_LENGTH = 5000;
 const ADMIN_MOBILE_MAX_LENGTH = 10;
+const DEFAULT_ADMIN_COUNTRY_CODE = "+91";
 
 const sanitizePrintableAscii = (value: string) =>
   (value ?? "").replace(/[^\u0020-\u007E]/g, "");
@@ -176,6 +177,16 @@ export const SocietyForm: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const hasAutoFetchedLocation = useRef(false);
   const formDataRef = useRef(formData);
+
+  const getDialCodeForCountry = useCallback(
+    (countryName: string) => {
+      const selectedCountry = countryOptions.find(
+        (option) => option.countryName === countryName
+      );
+      return selectedCountry?.dialCode?.trim() || DEFAULT_ADMIN_COUNTRY_CODE;
+    },
+    [countryOptions]
+  );
 
   useEffect(() => {
     formDataRef.current = formData;
@@ -316,8 +327,17 @@ export const SocietyForm: React.FC = () => {
       }));
     };
 
-    const cloneAdmins = (source: SocietyAdmin[]): SocietyAdmin[] =>
-      source.map((admin) => ({ ...admin }));
+    const cloneAdmins = (
+      source: SocietyAdmin[],
+      societyCountry: string
+    ): SocietyAdmin[] =>
+      source.map((admin) => ({
+        ...admin,
+        countryCode:
+          admin.countryCode ||
+          getDialCodeForCountry(societyCountry) ||
+          DEFAULT_ADMIN_COUNTRY_CODE,
+      }));
 
     const populateFromSociety = (society: Society) => {
       setFormData({
@@ -343,7 +363,7 @@ export const SocietyForm: React.FC = () => {
       setWings(cloneWings(society.wings));
       setEntryGates(ensureGates(society.entryGates, "entry"));
       setExitGates(ensureGates(society.exitGates, "exit"));
-      setAdmins(cloneAdmins(society.societyAdmins));
+      setAdmins(cloneAdmins(society.societyAdmins, society.country || ""));
     };
 
     const initialize = async () => {
@@ -409,6 +429,7 @@ export const SocietyForm: React.FC = () => {
     fetchSocietyById,
     navigate,
     hasInitialized,
+    getDialCodeForCountry,
   ]);
 
   useEffect(() => {
@@ -455,11 +476,18 @@ export const SocietyForm: React.FC = () => {
   };
 
   const handleCountrySelect = (value: string) => {
+    const dialCode = getDialCodeForCountry(value);
     setFormData((prev) => ({
       ...prev,
       country: value,
       city: "",
     }));
+    setAdmins((prev) =>
+      prev.map((admin) => ({
+        ...admin,
+        countryCode: admin.countryCode || dialCode,
+      }))
+    );
     clearError("basic.country");
     clearError("basic.city");
   };
@@ -613,6 +641,7 @@ export const SocietyForm: React.FC = () => {
     const newAdmin: SocietyAdmin = {
       id: `admin${Date.now()}`,
       name: "",
+      countryCode: getDialCodeForCountry(formData.country),
       mobile: "",
       email: "",
       status: "Active",
@@ -632,6 +661,8 @@ export const SocietyForm: React.FC = () => {
         name: value.slice(0, ADMIN_NAME_MAX_LENGTH),
       };
       clearError(`admins.${updated[index].id}.name`);
+    } else if (field === "countryCode") {
+      updated[index] = { ...updated[index], countryCode: value };
     } else if (field === "mobile") {
       
       const numericValue = value.replace(/\D/g, "").slice(0, 10);
@@ -646,6 +677,9 @@ export const SocietyForm: React.FC = () => {
     }
     if (field === "mobile") {
       clearError(`admins.${adminId}.mobile`);
+    }
+    if (field === "countryCode") {
+      clearError(`admins.${adminId}.countryCode`);
     }
     if (field === "email") {
       clearError(`admins.${adminId}.email`);
@@ -837,6 +871,9 @@ export const SocietyForm: React.FC = () => {
 
           }
         }
+        if (!admin.countryCode?.trim()) {
+          tabErrors[`${adminKey}.countryCode`] = "Country code is required.";
+        }
         if (!admin.email.trim()) {
           tabErrors[`${adminKey}.email`] = "Admin email is required.";
         } else if (!emailRegex.test(admin.email.trim())) {
@@ -1007,6 +1044,7 @@ export const SocietyForm: React.FC = () => {
         societyId: societyIdValue,
         societyName: formData.societyName.trim(),
         name: admin.name.trim(),
+        countryCode: admin.countryCode?.trim() || DEFAULT_ADMIN_COUNTRY_CODE,
         email: admin.email.trim(),
         mobile: admin.mobile.trim(),
       }))
@@ -1906,6 +1944,46 @@ export const SocietyForm: React.FC = () => {
                                 {errors[`admins.${admin.id}.name`] && (
                                   <p className="text-sm validation-message">
                                     {errors[`admins.${admin.id}.name`]}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <Label data-required>Country Code</Label>
+                                <Select
+                                  value={admin.countryCode || ""}
+                                  onValueChange={(value) =>
+                                    updateAdmin(index, "countryCode", value)
+                                  }
+                                  disabled={
+                                    isCountryOptionsLoading ||
+                                    normalizedCountryOptions.length === 0
+                                  }
+                                >
+                                  <SelectTrigger
+                                    aria-invalid={Boolean(
+                                      errors[`admins.${admin.id}.countryCode`]
+                                    )}
+                                  >
+                                    <SelectValue placeholder="Select code" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {normalizedCountryOptions.map((option) => (
+                                      <SelectItem
+                                        key={`${option.countryCode}-${option.countryName}`}
+                                        value={
+                                          option.dialCode || option.countryCode
+                                        }
+                                      >
+                                        {(option.dialCode || option.countryCode) +
+                                          " - " +
+                                          option.countryName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {errors[`admins.${admin.id}.countryCode`] && (
+                                  <p className="text-sm validation-message">
+                                    {errors[`admins.${admin.id}.countryCode`]}
                                   </p>
                                 )}
                               </div>

@@ -56,6 +56,7 @@ export interface Gate {
 export interface SocietyAdmin {
   id: string;
   name: string;
+  countryCode?: string;
   mobile: string;
   email: string;
   status: 'Active' | 'Inactive';
@@ -74,6 +75,7 @@ export interface Document {
 export interface CountryCityOption {
   countryCode: string;
   countryName: string;
+  dialCode?: string;
   cities: string[];
 }
 
